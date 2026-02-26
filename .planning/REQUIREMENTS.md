@@ -21,12 +21,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Communication
 
-- [ ] **COMM-01**: Watcher sends boss_encounter event to VPS via HTTP POST
-- [ ] **COMM-02**: Watcher sends player_death event to VPS via HTTP POST
-- [ ] **COMM-03**: Watcher sends boss_kill event to VPS via HTTP POST
-- [ ] **COMM-04**: Watcher sends session_start and session_end events to VPS
-- [ ] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
-- [ ] **COMM-06**: API authenticates events via per-player API key
+- [x] **COMM-01**: Watcher sends boss_encounter event to VPS via HTTP POST
+- [x] **COMM-02**: Watcher sends player_death event to VPS via HTTP POST
+- [x] **COMM-03**: Watcher sends boss_kill event to VPS via HTTP POST
+- [x] **COMM-04**: Watcher sends session_start and session_end events to VPS
+- [x] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
+- [x] **COMM-06**: API authenticates events via per-player API key
 - [x] **COMM-07**: Watcher handles network disconnects gracefully (retry queue)
 
 ### Discord Notifications
@@ -59,10 +59,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Integration
 
-- [ ] **INTG-01**: New eldenRingTracker.js module in delu-bot following existing tracker pattern
-- [ ] **INTG-02**: Elden Ring data stored in delu-bot's storage.js (same JSON persistence)
-- [ ] **INTG-03**: Feature flag for Elden Ring tracking (tracking_elden_ring, betting_elden_ring)
-- [ ] **INTG-04**: Does not break existing LoL/TFT functionality
+- [x] **INTG-01**: New eldenRingTracker.js module in delu-bot following existing tracker pattern
+- [x] **INTG-02**: Elden Ring data stored in delu-bot's storage.js (same JSON persistence)
+- [x] **INTG-03**: Feature flag for Elden Ring tracking (tracking_elden_ring, betting_elden_ring)
+- [x] **INTG-04**: Does not break existing LoL/TFT functionality
 - [x] **INTG-05**: Watcher installable as a standalone Python app on Windows (pip install or exe)
 
 ## v2 Requirements
