@@ -14,6 +14,7 @@ from watcher.http_client import WatcherHttpClient
 from watcher.logger import setup_logging
 from watcher.process_monitor import ProcessMonitor
 from watcher.tray import TrayApp, TrayStatus
+from watcher.updater import perform_update_if_available
 from watcher.watcher import Watcher
 
 
@@ -94,7 +95,12 @@ def main() -> None:
     # Start tray in background thread
     tray.run_detached()
 
-    # AUTO-UPDATE CHECK — wired by Plan 06
+    # Auto-update check on startup
+    try:
+        if perform_update_if_available():
+            return  # Update initiated — app will restart via batch script
+    except Exception:
+        logger.warning("Auto-update check failed, continuing with current version")
 
     # Start periodic queue flush thread
     def flush_loop() -> None:
