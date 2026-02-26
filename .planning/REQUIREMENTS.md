@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DETECT-06**: Watcher matches OCR output to canonical boss name list (~168 bosses) via fuzzy matching
 - [ ] **DETECT-07**: Watcher detects "YOU DIED" screen (player death)
 - [ ] **DETECT-08**: Watcher detects boss kill (health bar disappears after active fight)
-- [ ] **DETECT-09**: Watcher uses state machine to prevent duplicate events (health bar flicker, phase transitions)
+- [x] **DETECT-09**: Watcher uses state machine to prevent duplicate events (health bar flicker, phase transitions)
 
 ### Communication
 
@@ -111,7 +111,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | DETECT-06 | Phase 1 | Pending |
 | DETECT-07 | Phase 1 | Pending |
 | DETECT-08 | Phase 1 | Pending |
-| DETECT-09 | Phase 1 | Pending |
+| DETECT-09 | Phase 1 | Complete |
 | COMM-01 | Phase 2 | Pending |
 | COMM-02 | Phase 2 | Pending |
 | COMM-03 | Phase 2 | Pending |
