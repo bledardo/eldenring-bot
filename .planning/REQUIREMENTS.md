@@ -103,52 +103,52 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DETECT-01 | — | Pending |
-| DETECT-02 | — | Pending |
-| DETECT-03 | — | Pending |
-| DETECT-04 | — | Pending |
-| DETECT-05 | — | Pending |
-| DETECT-06 | — | Pending |
-| DETECT-07 | — | Pending |
-| DETECT-08 | — | Pending |
-| DETECT-09 | — | Pending |
-| COMM-01 | — | Pending |
-| COMM-02 | — | Pending |
-| COMM-03 | — | Pending |
-| COMM-04 | — | Pending |
-| COMM-05 | — | Pending |
-| COMM-06 | — | Pending |
-| COMM-07 | — | Pending |
-| NOTIF-01 | — | Pending |
-| NOTIF-02 | — | Pending |
-| NOTIF-03 | — | Pending |
-| NOTIF-04 | — | Pending |
-| NOTIF-05 | — | Pending |
-| BET-01 | — | Pending |
-| BET-02 | — | Pending |
-| BET-03 | — | Pending |
-| BET-04 | — | Pending |
-| BET-05 | — | Pending |
-| BET-06 | — | Pending |
-| BET-07 | — | Pending |
-| STAT-01 | — | Pending |
-| STAT-02 | — | Pending |
-| STAT-03 | — | Pending |
-| STAT-04 | — | Pending |
-| STAT-05 | — | Pending |
-| STAT-06 | — | Pending |
-| STAT-07 | — | Pending |
-| INTG-01 | — | Pending |
-| INTG-02 | — | Pending |
-| INTG-03 | — | Pending |
-| INTG-04 | — | Pending |
-| INTG-05 | — | Pending |
+| DETECT-01 | Phase 1 | Pending |
+| DETECT-02 | Phase 1 | Pending |
+| DETECT-03 | Phase 1 | Pending |
+| DETECT-04 | Phase 1 | Pending |
+| DETECT-05 | Phase 1 | Pending |
+| DETECT-06 | Phase 1 | Pending |
+| DETECT-07 | Phase 1 | Pending |
+| DETECT-08 | Phase 1 | Pending |
+| DETECT-09 | Phase 1 | Pending |
+| COMM-01 | Phase 2 | Pending |
+| COMM-02 | Phase 2 | Pending |
+| COMM-03 | Phase 2 | Pending |
+| COMM-04 | Phase 2 | Pending |
+| COMM-05 | Phase 2 | Pending |
+| COMM-06 | Phase 2 | Pending |
+| COMM-07 | Phase 1 | Pending |
+| NOTIF-01 | Phase 3 | Pending |
+| NOTIF-02 | Phase 3 | Pending |
+| NOTIF-03 | Phase 3 | Pending |
+| NOTIF-04 | Phase 3 | Pending |
+| NOTIF-05 | Phase 3 | Pending |
+| BET-01 | Phase 3 | Pending |
+| BET-02 | Phase 3 | Pending |
+| BET-03 | Phase 3 | Pending |
+| BET-04 | Phase 3 | Pending |
+| BET-05 | Phase 3 | Pending |
+| BET-06 | Phase 3 | Pending |
+| BET-07 | Phase 3 | Pending |
+| STAT-01 | Phase 4 | Pending |
+| STAT-02 | Phase 4 | Pending |
+| STAT-03 | Phase 4 | Pending |
+| STAT-04 | Phase 4 | Pending |
+| STAT-05 | Phase 4 | Pending |
+| STAT-06 | Phase 4 | Pending |
+| STAT-07 | Phase 4 | Pending |
+| INTG-01 | Phase 2 | Pending |
+| INTG-02 | Phase 2 | Pending |
+| INTG-03 | Phase 2 | Pending |
+| INTG-04 | Phase 2 | Pending |
+| INTG-05 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 39 total
-- Mapped to phases: 0
-- Unmapped: 39 ⚠️
+- v1 requirements: 40 total
+- Mapped to phases: 40
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-26 after initial definition*
+*Last updated: 2026-02-26 — traceability complete after roadmap creation*
