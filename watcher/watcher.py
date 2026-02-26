@@ -1,0 +1,300 @@
+"""Core detection loop wiring all components: capture -> detect -> FSM -> events -> HTTP.
+
+This is the central nervous system of the Watcher. It runs at ~10fps when the
+game is active and pauses when the game is not in focus.
+"""
+
+from __future__ import annotations
+
+import time
+import threading
+from datetime import datetime, timezone
+from pathlib import Path
+
+import cv2
+import numpy as np
+from loguru import logger
+
+from watcher.capture import ScreenCapture, BOSS_BAR_REGION, YOU_DIED_REGION, COOP_REGION
+from watcher.config import Config
+from watcher.detectors.health_bar import HealthBarDetector
+from watcher.detectors.you_died import YouDiedDetector
+from watcher.detectors.boss_name import BossNameDetector
+from watcher.detectors.coop import CoopDetector
+from watcher.http_client import WatcherHttpClient
+from watcher.state_machine import BossFightFSM, FightState
+from watcher.tray import TrayApp, TrayStatus
+
+
+def _find_game_window(pid: int) -> int | None:
+    """Find the game window handle from PID.
+
+    Uses win32gui on Windows, returns None on other platforms.
+    """
+    try:
+        import win32gui
+        import win32process
+
+        result: list[int] = []
+
+        def enum_callback(hwnd: int, _: object) -> None:
+            _, found_pid = win32process.GetWindowThreadProcessId(hwnd)
+            if found_pid == pid and win32gui.IsWindowVisible(hwnd):
+                result.append(hwnd)
+
+        win32gui.EnumWindows(enum_callback, None)
+        return result[0] if result else None
+
+    except ImportError:
+        logger.debug("win32gui not available (not on Windows)")
+        return None
+    except Exception as exc:
+        logger.warning("Failed to find game window: {}", exc)
+        return None
+
+
+def _is_game_focused(hwnd: int | None) -> bool:
+    """Check if the game window is focused and not minimized.
+
+    Returns True if we can't determine focus (non-Windows).
+    """
+    if hwnd is None:
+        return True  # Assume focused if we can't check
+
+    try:
+        import win32gui
+
+        # Check if minimized
+        if win32gui.IsIconic(hwnd):
+            return False
+        # Check if foreground
+        return win32gui.GetForegroundWindow() == hwnd
+
+    except ImportError:
+        return True
+    except Exception:
+        return True
+
+
+class Watcher:
+    """Core detection loop — capture -> detect -> FSM -> events -> HTTP.
+
+    Runs at target_fps when the game is active. Pauses when game is not in focus.
+    OCR runs once per encounter (expensive ~100-500ms).
+
+    Args:
+        config: Watcher configuration.
+        http_client: HTTP client for event delivery.
+        tray: System tray icon for status updates.
+    """
+
+    def __init__(
+        self,
+        config: Config,
+        http_client: WatcherHttpClient,
+        tray: TrayApp,
+    ) -> None:
+        self._config = config
+        self._http_client = http_client
+        self._tray = tray
+        self._running = False
+        self._game_hwnd: int | None = None
+        self._was_paused = False
+
+        # Initialize capture
+        self._capture = ScreenCapture(target_fps=config.capture_fps)
+
+        # Initialize detectors
+        template_dir = Path("watcher/assets/templates")
+        self._health_bar = HealthBarDetector(template_dir)
+        self._you_died = YouDiedDetector(template_dir)
+        self._boss_name = BossNameDetector(Path("watcher/assets/boss_names.json"))
+        self._coop = CoopDetector(template_dir)
+
+        # Initialize FSM
+        self._fsm = BossFightFSM(
+            on_encounter=self._on_encounter,
+            on_death=self._on_death,
+            on_kill=self._on_kill,
+            on_abandon=self._on_abandon,
+        )
+
+        # State tracking
+        self._current_boss_name: str | None = None
+        self._coop_detected: bool = False
+        self._last_flush_time: float = 0.0
+
+    def start(self, game_pid: int) -> None:
+        """Start the detection loop.
+
+        Args:
+            game_pid: PID of the game process.
+        """
+        self._game_hwnd = _find_game_window(game_pid)
+        self._running = True
+
+        # Send session start event
+        self._http_client.send_event({
+            "type": "session_start",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+        self._tray.set_status(TrayStatus.WATCHING)
+        logger.info("Watcher started (game PID: {}, window: {})", game_pid, self._game_hwnd)
+
+        self._detection_loop()
+
+    def stop(self) -> None:
+        """Stop the detection loop."""
+        self._running = False
+        self._capture.cleanup()
+        self._tray.set_status(TrayStatus.NO_GAME)
+        logger.info("Watcher stopped")
+
+    def _detection_loop(self) -> None:
+        """Main loop running at target_fps."""
+        frame_interval = 1.0 / self._config.capture_fps
+
+        while self._running:
+            frame_start = time.perf_counter()
+
+            # Check game focus
+            if not _is_game_focused(self._game_hwnd):
+                if not self._was_paused:
+                    logger.info("Detection paused: game not in focus")
+                    self._was_paused = True
+                time.sleep(0.5)
+                continue
+
+            if self._was_paused:
+                logger.info("Detection resumed: game in focus")
+                self._was_paused = False
+                self._tray.set_status(TrayStatus.WATCHING)
+
+            # Capture boss bar region (always needed)
+            boss_bar_frame = self._capture.capture_region(BOSS_BAR_REGION)
+
+            # Run health bar detector
+            bar_detected = False
+            if boss_bar_frame is not None:
+                bar_detected = self._health_bar.detect(boss_bar_frame)
+
+            # Run death detector only during active fight or resolving
+            death_detected = False
+            if self._fsm.state in (FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING):
+                you_died_frame = self._capture.capture_region(YOU_DIED_REGION)
+                if you_died_frame is not None:
+                    death_detected = self._you_died.detect(you_died_frame)
+
+            # Check co-op only when encounter first confirmed
+            if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
+                coop_frame = self._capture.capture_region(COOP_REGION)
+                if coop_frame is not None:
+                    self._coop_detected = self._coop.detect(coop_frame)
+
+            # Run OCR once per encounter (when health bar first confirmed)
+            boss_name = self._current_boss_name
+            if (
+                bar_detected
+                and self._fsm.state == FightState.ENCOUNTER_PENDING
+                and self._current_boss_name is None
+                and boss_bar_frame is not None
+            ):
+                detected_name = self._boss_name.detect(boss_bar_frame)
+                if detected_name:
+                    self._current_boss_name = detected_name
+                    boss_name = detected_name
+                    logger.info("Boss identified: {}", detected_name)
+
+            # Feed FSM
+            self._fsm.process_frame(
+                boss_bar_detected=bar_detected,
+                boss_name=boss_name,
+                death_detected=death_detected,
+            )
+
+            # Debug screenshots on detection triggers
+            if self._config.debug_screenshots:
+                self._save_debug_screenshot(bar_detected, death_detected)
+
+            # Periodic queue flush (every ~30s)
+            now = time.time()
+            if now - self._last_flush_time > 30.0:
+                self._last_flush_time = now
+                threading.Thread(
+                    target=self._http_client.flush_queue,
+                    daemon=True,
+                ).start()
+
+            # Frame pacing
+            elapsed = time.perf_counter() - frame_start
+            sleep_time = frame_interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+
+            logger.trace("Frame: {:.1f}ms (target: {:.1f}ms)", elapsed * 1000, frame_interval * 1000)
+
+    def _on_encounter(self, boss_name: str) -> None:
+        """FSM callback: boss encounter confirmed."""
+        if self._coop_detected:
+            logger.info("Co-op detected — skipping encounter event for {}", boss_name)
+            return
+
+        logger.info("Boss encounter: {}", boss_name)
+        self._http_client.send_event({
+            "type": "boss_encounter",
+            "boss_name": boss_name,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    def _on_death(self, boss_name: str) -> None:
+        """FSM callback: player death."""
+        logger.info("Player death vs {}", boss_name)
+        self._http_client.send_event({
+            "type": "player_death",
+            "boss_name": boss_name,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self._reset_fight_state()
+
+    def _on_kill(self, boss_name: str) -> None:
+        """FSM callback: boss killed."""
+        logger.info("Boss killed: {}", boss_name)
+        self._http_client.send_event({
+            "type": "boss_kill",
+            "boss_name": boss_name,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self._reset_fight_state()
+
+    def _on_abandon(self, boss_name: str) -> None:
+        """FSM callback: fight abandoned."""
+        logger.info("Fight abandoned: {}", boss_name)
+        self._http_client.send_event({
+            "type": "fight_abandoned",
+            "boss_name": boss_name,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self._reset_fight_state()
+
+    def _reset_fight_state(self) -> None:
+        """Reset per-fight tracking state."""
+        self._current_boss_name = None
+        self._coop_detected = False
+
+    def _save_debug_screenshot(self, bar_detected: bool, death_detected: bool) -> None:
+        """Save debug screenshots on detection triggers."""
+        if not (bar_detected or death_detected):
+            return
+
+        screenshot_dir = self._config.data_dir / "screenshots"
+        screenshot_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        event_type = "death" if death_detected else "bar"
+
+        frame = self._capture.capture_full()
+        if frame is not None:
+            path = screenshot_dir / f"{timestamp}_{event_type}.png"
+            cv2.imwrite(str(path), frame)
+            logger.debug("Debug screenshot saved: {}", path.name)
