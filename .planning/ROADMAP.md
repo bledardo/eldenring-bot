@@ -46,7 +46,12 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
   3. eldenRingTracker.js exists in delu-bot, is loaded on bot startup, and does not break existing LoL/TFT functionality
   4. Elden Ring events are persisted in delu-bot's storage.js with correct structure (player, boss, timestamp, attempt count)
   5. Feature flags tracking_elden_ring and betting_elden_ring are present and respected
-**Plans**: TBD
+**Plans**: 5 plans
+- [ ] 02-01-PLAN.md — Storage extension, feature flags, config, Express install
+- [ ] 02-02-PLAN.md — Watcher HTTP client update (Authorization: Bearer header)
+- [ ] 02-03-PLAN.md — Express API server with auth, dedup, event routing (TDD)
+- [ ] 02-04-PLAN.md — eldenRingTracker.js module, EventEmitter, /er-setup command
+- [ ] 02-05-PLAN.md — Integration wiring, Docker config, end-to-end verification
 
 ### Phase 3: Discord Notifications and Betting
 **Goal**: Friends see rich Discord notifications for every boss event and can place bets on the outcome — bets resolve automatically and winnings hit their wallets
@@ -79,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Watcher Core | 0/7 | Planned | - |
-| 2. Event Pipeline | 0/TBD | Not started | - |
+| 2. Event Pipeline | 0/5 | Planned | - |
 | 3. Discord Notifications and Betting | 0/TBD | Not started | - |
 | 4. Stats and Social | 0/TBD | Not started | - |
