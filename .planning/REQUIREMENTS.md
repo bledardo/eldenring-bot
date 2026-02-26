@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **DETECT-01**: Watcher auto-detects Elden Ring process launch on Windows without manual start
 - [x] **DETECT-02**: Watcher auto-detects when Elden Ring process closes (session end)
-- [ ] **DETECT-03**: Watcher captures screen region where boss health bar appears using mss
+- [x] **DETECT-03**: Watcher captures screen region where boss health bar appears using mss
 - [ ] **DETECT-04**: Watcher detects boss health bar appearance via OpenCV template matching
 - [ ] **DETECT-05**: Watcher reads boss name from health bar via OCR (EasyOCR)
 - [ ] **DETECT-06**: Watcher matches OCR output to canonical boss name list (~168 bosses) via fuzzy matching
@@ -27,7 +27,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **COMM-04**: Watcher sends session_start and session_end events to VPS
 - [ ] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
 - [ ] **COMM-06**: API authenticates events via per-player API key
-- [ ] **COMM-07**: Watcher handles network disconnects gracefully (retry queue)
+- [x] **COMM-07**: Watcher handles network disconnects gracefully (retry queue)
 
 ### Discord Notifications
 
@@ -105,7 +105,7 @@ Deferred to future release. Tracked but not in current roadmap.
 |-------------|-------|--------|
 | DETECT-01 | Phase 1 | Complete |
 | DETECT-02 | Phase 1 | Complete |
-| DETECT-03 | Phase 1 | Pending |
+| DETECT-03 | Phase 1 | Complete |
 | DETECT-04 | Phase 1 | Pending |
 | DETECT-05 | Phase 1 | Pending |
 | DETECT-06 | Phase 1 | Pending |
@@ -118,7 +118,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | COMM-04 | Phase 2 | Pending |
 | COMM-05 | Phase 2 | Pending |
 | COMM-06 | Phase 2 | Pending |
-| COMM-07 | Phase 1 | Pending |
+| COMM-07 | Phase 1 | Complete |
 | NOTIF-01 | Phase 3 | Pending |
 | NOTIF-02 | Phase 3 | Pending |
 | NOTIF-03 | Phase 3 | Pending |
