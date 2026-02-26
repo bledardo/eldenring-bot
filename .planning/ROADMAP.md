@@ -27,7 +27,14 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
   3. "YOU DIED" screen is detected reliably as a player death event
   4. Boss kill is detected when the health bar disappears after an active fight (not from leaving the area)
   5. The Watcher is installable on a Windows PC with a single command or exe — no Python expertise required
-**Plans**: TBD
+**Plans**: 7 plans
+- [ ] 01-01-PLAN.md — Project scaffold, config, logging, process monitor, tray icon
+- [ ] 01-02-PLAN.md — State machine (TDD) for boss fight lifecycle
+- [ ] 01-03-PLAN.md — Screen capture abstraction, event queue, HTTP client
+- [ ] 01-04-PLAN.md — Visual detectors: health bar, YOU DIED, boss name OCR, co-op
+- [ ] 01-05-PLAN.md — Main detection loop wiring all components
+- [ ] 01-06-PLAN.md — PyInstaller packaging, auto-update, GitHub Actions
+- [ ] 01-07-PLAN.md — Integration tests and screenshot validation checkpoint
 
 ### Phase 2: Event Pipeline
 **Goal**: Events from the Watcher reach delu-bot on the VPS, are authenticated, and are stored — delu-bot module exists and receives events correctly
@@ -71,7 +78,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Watcher Core | 0/TBD | Not started | - |
+| 1. Watcher Core | 0/7 | Planned | - |
 | 2. Event Pipeline | 0/TBD | Not started | - |
 | 3. Discord Notifications and Betting | 0/TBD | Not started | - |
 | 4. Stats and Social | 0/TBD | Not started | - |
