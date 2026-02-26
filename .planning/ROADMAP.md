@@ -11,7 +11,7 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [ ] **Phase 1: Watcher Core** - Screen capture, boss detection, state machine, and packaged Watcher app
-- [ ] **Phase 2: Event Pipeline** - HTTP API on VPS, delu-bot module scaffold, authentication, and storage
+- [x] **Phase 2: Event Pipeline** - HTTP API on VPS, delu-bot module scaffold, authentication, and storage
 - [ ] **Phase 3: Discord Notifications and Betting** - Rich embeds, betting buttons, bet resolution, session summary
 - [ ] **Phase 4: Stats and Social** - Slash commands, per-player stats, leaderboard, boss difficulty comparison
 
@@ -47,11 +47,11 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
   4. Elden Ring events are persisted in delu-bot's storage.js with correct structure (player, boss, timestamp, attempt count)
   5. Feature flags tracking_elden_ring and betting_elden_ring are present and respected
 **Plans**: 5 plans
-- [ ] 02-01-PLAN.md — Storage extension, feature flags, config, Express install
-- [ ] 02-02-PLAN.md — Watcher HTTP client update (Authorization: Bearer header)
-- [ ] 02-03-PLAN.md — Express API server with auth, dedup, event routing (TDD)
-- [ ] 02-04-PLAN.md — eldenRingTracker.js module, EventEmitter, /er-setup command
-- [ ] 02-05-PLAN.md — Integration wiring, Docker config, end-to-end verification
+- [x] 02-01-PLAN.md — Storage extension, feature flags, config, Express install
+- [x] 02-02-PLAN.md — Watcher HTTP client update (Authorization: Bearer header)
+- [x] 02-03-PLAN.md — Express API server with auth, dedup, event routing (TDD)
+- [x] 02-04-PLAN.md — eldenRingTracker.js module, EventEmitter, /er-setup command
+- [x] 02-05-PLAN.md — Integration wiring, Docker config, end-to-end verification
 
 ### Phase 3: Discord Notifications and Betting
 **Goal**: Friends see rich Discord notifications for every boss event and can place bets on the outcome — bets resolve automatically and winnings hit their wallets
@@ -83,7 +83,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Watcher Core | 0/7 | Planned | - |
-| 2. Event Pipeline | 0/5 | Planned | - |
+| 1. Watcher Core | 7/7 | Complete | 2026-02-26 |
+| 2. Event Pipeline | 5/5 | Complete | 2026-02-27 |
 | 3. Discord Notifications and Betting | 0/TBD | Not started | - |
 | 4. Stats and Social | 0/TBD | Not started | - |

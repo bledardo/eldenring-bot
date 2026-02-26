@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-02-26T22:55:59.248Z"
+last_updated: "2026-02-27T00:36:00.000Z"
 progress:
-  total_phases: 1
-  completed_phases: 1
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,36 +18,42 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-26)
 
 **Core value:** Automatically detect boss encounters in Elden Ring and let friends bet on the outcome — zero manual input from the player.
-**Current focus:** Phase 1 — Watcher Core
+**Current focus:** Phase 2 complete — ready for Phase 3
 
 ## Current Position
 
-Phase: 1 of 4 (Watcher Core)
-Plan: 1 of 7 in current phase
-Status: Executing
-Last activity: 2026-02-26 — Completed 01-01-PLAN.md
+Phase: 2 of 4 (Event Pipeline) — COMPLETE
+Plan: 5 of 5 in current phase — ALL COMPLETE
+Status: Phase complete
+Last activity: 2026-02-27 — Completed all 5 plans in Phase 2
 
-Progress: [█░░░░░░░░░] 14%
+Progress: [████░░░░░░] 50% (2/4 phases)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- Total plans completed: 12
+- Average duration: ~12 min
+- Total execution time: ~2.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 1. Watcher Core | 7 | ~1.5h | ~13min |
+| 2. Event Pipeline | 5 | ~75min | ~15min |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: 02-01 through 02-05
+- Trend: Steady
 
 *Updated after each plan completion*
 | Phase 01 P01 | 2min | 2 tasks | 9 files |
+| Phase 02 P01 | 15min | 4 tasks | 4 files |
+| Phase 02 P02 | 10min | 2 tasks | 2 files |
+| Phase 02 P03 | 25min | 3 tasks | 3 files |
+| Phase 02 P04 | 15min | 3 tasks | 2 files |
+| Phase 02 P05 | 10min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -60,9 +66,14 @@ Recent decisions affecting current work:
 - [Init]: Integrate into existing delu-bot (not standalone) — reuse betting system and wallets
 - [Init]: Screen capture only (mss) — EasyAntiCheat safe, no process injection
 - [Init]: Push-based events (Watcher POSTs to VPS) — VPS cannot poll the player's PC
-- [Research]: State machine is non-negotiable before wiring detection to any I/O — prevents duplicate events and corrupted attempt counts
+- [Research]: State machine is non-negotiable before wiring detection to any I/O
 - [Research]: Borderless Windowed mode required — fullscreen exclusive causes black captures with mss
-- [Research]: EasyOCR over Tesseract for boss name OCR — handles Elden Ring's stylized font better; validate accuracy in Phase 1
+- [Research]: EasyOCR over Tesseract for boss name OCR
+- [Phase 2]: Express 5.x used (stable) instead of planned 4.x — no issues
+- [Phase 2]: Lazy require() pattern for circular dependency between apiServer.js and eldenRingTracker.js
+- [Phase 2]: Manual mock approach in vitest tests (override module.exports) instead of vi.mock() due to CJS
+- [Phase 2]: DM-first pattern for API key delivery (fallback to ephemeral)
+- [Phase 2]: Feature flags default to false (opt-in for Elden Ring tracking)
 
 ### Pending Todos
 
@@ -70,11 +81,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 1 risk: EasyOCR accuracy on Elden Ring's specific font/gradient background is unvalidated. Build a test screenshot library and benchmark before committing to OCR approach. Template-matching fallback should exist regardless.
-- Phase 1 risk: mss behavior on HDR displays is unvalidated. Structure-based detection (not color-based) mitigates this but HDR is a known limitation until tested.
+- Phase 1 risk: EasyOCR accuracy on Elden Ring's specific font/gradient background is unvalidated
+- Phase 1 risk: mss behavior on HDR displays is unvalidated
+- Phase 2 checkpoint: Human verification of end-to-end pipeline recommended before Phase 3
 
 ## Session Continuity
 
-Last session: 2026-02-26
-Stopped at: Roadmap created — ready to plan Phase 1
+Last session: 2026-02-27
+Stopped at: Phase 2 complete — all 5 plans executed, summaries written
 Resume file: None
