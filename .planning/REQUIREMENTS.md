@@ -12,10 +12,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DETECT-01**: Watcher auto-detects Elden Ring process launch on Windows without manual start
 - [x] **DETECT-02**: Watcher auto-detects when Elden Ring process closes (session end)
 - [x] **DETECT-03**: Watcher captures screen region where boss health bar appears using mss
-- [ ] **DETECT-04**: Watcher detects boss health bar appearance via OpenCV template matching
-- [ ] **DETECT-05**: Watcher reads boss name from health bar via OCR (EasyOCR)
-- [ ] **DETECT-06**: Watcher matches OCR output to canonical boss name list (~168 bosses) via fuzzy matching
-- [ ] **DETECT-07**: Watcher detects "YOU DIED" screen (player death)
+- [x] **DETECT-04**: Watcher detects boss health bar appearance via OpenCV template matching
+- [x] **DETECT-05**: Watcher reads boss name from health bar via OCR (EasyOCR)
+- [x] **DETECT-06**: Watcher matches OCR output to canonical boss name list (~168 bosses) via fuzzy matching
+- [x] **DETECT-07**: Watcher detects "YOU DIED" screen (player death)
 - [ ] **DETECT-08**: Watcher detects boss kill (health bar disappears after active fight)
 - [x] **DETECT-09**: Watcher uses state machine to prevent duplicate events (health bar flicker, phase transitions)
 
@@ -106,10 +106,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | DETECT-01 | Phase 1 | Complete |
 | DETECT-02 | Phase 1 | Complete |
 | DETECT-03 | Phase 1 | Complete |
-| DETECT-04 | Phase 1 | Pending |
-| DETECT-05 | Phase 1 | Pending |
-| DETECT-06 | Phase 1 | Pending |
-| DETECT-07 | Phase 1 | Pending |
+| DETECT-04 | Phase 1 | Complete |
+| DETECT-05 | Phase 1 | Complete |
+| DETECT-06 | Phase 1 | Complete |
+| DETECT-07 | Phase 1 | Complete |
 | DETECT-08 | Phase 1 | Pending |
 | DETECT-09 | Phase 1 | Complete |
 | COMM-01 | Phase 2 | Pending |
