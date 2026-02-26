@@ -63,7 +63,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INTG-02**: Elden Ring data stored in delu-bot's storage.js (same JSON persistence)
 - [ ] **INTG-03**: Feature flag for Elden Ring tracking (tracking_elden_ring, betting_elden_ring)
 - [ ] **INTG-04**: Does not break existing LoL/TFT functionality
-- [ ] **INTG-05**: Watcher installable as a standalone Python app on Windows (pip install or exe)
+- [x] **INTG-05**: Watcher installable as a standalone Python app on Windows (pip install or exe)
 
 ## v2 Requirements
 
@@ -142,7 +142,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | INTG-02 | Phase 2 | Pending |
 | INTG-03 | Phase 2 | Pending |
 | INTG-04 | Phase 2 | Pending |
-| INTG-05 | Phase 1 | Pending |
+| INTG-05 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 40 total
