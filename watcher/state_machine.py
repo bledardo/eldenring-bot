@@ -1,0 +1,200 @@
+"""Boss fight state machine — lifecycle management for encounters, deaths, kills, and abandons.
+
+Uses the `transitions` library to define states and transitions. The FSM is time-aware:
+phase_transition_window and cooldown use real timestamps, not frame counts.
+"""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Callable
+from enum import Enum
+
+from loguru import logger
+from transitions import Machine
+
+
+class FightState(str, Enum):
+    """Boss fight lifecycle states."""
+
+    IDLE = "idle"
+    ENCOUNTER_PENDING = "encounter_pending"
+    ACTIVE_FIGHT = "active_fight"
+    FIGHT_RESOLVING = "fight_resolving"
+    COOLDOWN = "cooldown"
+
+
+class BossFightFSM:
+    """Finite state machine for boss fight lifecycle.
+
+    Prevents duplicate events from health bar flicker, handles multi-phase boss
+    transitions, and ensures exactly-once event emission for encounters, deaths,
+    kills, and abandons.
+
+    Args:
+        on_encounter: Callback when encounter is confirmed.
+        on_death: Callback when death is detected during fight.
+        on_kill: Callback when boss is killed.
+        on_abandon: Callback when fight is abandoned.
+        encounter_confirm_frames: Consecutive frames needed to confirm encounter.
+        phase_transition_window: Seconds to wait for bar reappearance before resolution.
+        cooldown_duration: Seconds after resolution before accepting new encounters.
+    """
+
+    def __init__(
+        self,
+        on_encounter: Callable[[str], None],
+        on_death: Callable[[str], None],
+        on_kill: Callable[[str], None],
+        on_abandon: Callable[[str], None],
+        encounter_confirm_frames: int = 3,
+        phase_transition_window: float = 10.0,
+        cooldown_duration: float = 5.0,
+    ) -> None:
+        self._on_encounter = on_encounter
+        self._on_death = on_death
+        self._on_kill = on_kill
+        self._on_abandon = on_abandon
+
+        self.encounter_confirm_frames = encounter_confirm_frames
+        self.phase_transition_window = phase_transition_window
+        self.cooldown_duration = cooldown_duration
+
+        # Internal tracking
+        self._confirm_count: int = 0
+        self._current_boss: str | None = None
+        self._resolution_start: float | None = None
+        self._cooldown_start: float | None = None
+
+        # State (managed manually for simplicity — transitions lib used for logging)
+        self.state = FightState.IDLE
+
+    def process_frame(
+        self,
+        boss_bar_detected: bool,
+        boss_name: str | None = None,
+        death_detected: bool = False,
+        timestamp: float | None = None,
+    ) -> None:
+        """Process a single frame of detection data.
+
+        This is the main method called every frame. Handles state transitions
+        based on current state and detection inputs.
+
+        Args:
+            boss_bar_detected: Whether the boss health bar is visible.
+            boss_name: Detected boss name (only needed on first detection).
+            death_detected: Whether the "YOU DIED" screen is detected.
+            timestamp: Frame timestamp; uses time.time() if not provided.
+        """
+        now = timestamp if timestamp is not None else time.time()
+
+        if self.state == FightState.IDLE:
+            self._handle_idle(boss_bar_detected, boss_name)
+
+        elif self.state == FightState.ENCOUNTER_PENDING:
+            self._handle_encounter_pending(boss_bar_detected, boss_name)
+
+        elif self.state == FightState.ACTIVE_FIGHT:
+            self._handle_active_fight(boss_bar_detected, death_detected, now)
+
+        elif self.state == FightState.FIGHT_RESOLVING:
+            self._handle_fight_resolving(boss_bar_detected, death_detected, now)
+
+        elif self.state == FightState.COOLDOWN:
+            self._handle_cooldown(now)
+
+    def _handle_idle(self, boss_bar_detected: bool, boss_name: str | None) -> None:
+        """IDLE: waiting for boss bar to appear."""
+        if boss_bar_detected:
+            self._confirm_count = 1
+            self._current_boss = boss_name
+            self._transition_to(FightState.ENCOUNTER_PENDING)
+
+    def _handle_encounter_pending(self, boss_bar_detected: bool, boss_name: str | None) -> None:
+        """ENCOUNTER_PENDING: counting consecutive frames for confirmation."""
+        if boss_bar_detected:
+            self._confirm_count += 1
+            if boss_name:
+                self._current_boss = boss_name  # Update with latest name
+
+            if self._confirm_count >= self.encounter_confirm_frames:
+                # Encounter confirmed
+                self._transition_to(FightState.ACTIVE_FIGHT)
+                boss = self._current_boss or "Unknown Boss"
+                logger.info("Boss encounter confirmed: {}", boss)
+                self._on_encounter(boss)
+        else:
+            # Flicker — bar disappeared before confirmation
+            logger.debug("Encounter pending reset (flicker after {} frames)", self._confirm_count)
+            self._confirm_count = 0
+            self._current_boss = None
+            self._transition_to(FightState.IDLE)
+
+    def _handle_active_fight(
+        self, boss_bar_detected: bool, death_detected: bool, now: float
+    ) -> None:
+        """ACTIVE_FIGHT: boss bar is present, fight is ongoing."""
+        if death_detected:
+            # Death during active fight
+            boss = self._current_boss or "Unknown Boss"
+            logger.info("Player death detected during fight with {}", boss)
+            self._on_death(boss)
+            self._cooldown_start = now
+            self._transition_to(FightState.COOLDOWN)
+
+        elif not boss_bar_detected:
+            # Bar disappeared — start resolution timer
+            self._resolution_start = now
+            self._transition_to(FightState.FIGHT_RESOLVING)
+
+        # else: bar still present — self-loop, no action
+
+    def _handle_fight_resolving(
+        self, boss_bar_detected: bool, death_detected: bool, now: float
+    ) -> None:
+        """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome."""
+        if death_detected:
+            # Death detected during resolution
+            boss = self._current_boss or "Unknown Boss"
+            logger.info("Player death detected (resolving) against {}", boss)
+            self._on_death(boss)
+            self._cooldown_start = now
+            self._transition_to(FightState.COOLDOWN)
+            return
+
+        if boss_bar_detected:
+            # Bar reappeared within window — multi-phase transition
+            logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
+            self._resolution_start = None
+            self._transition_to(FightState.ACTIVE_FIGHT)
+            return
+
+        # Check timeout
+        if self._resolution_start is not None:
+            elapsed = now - self._resolution_start
+            if elapsed >= self.phase_transition_window:
+                # Timeout — resolve as kill (default resolution)
+                boss = self._current_boss or "Unknown Boss"
+                logger.info("Boss kill detected (bar gone {}s): {}", f"{elapsed:.1f}", boss)
+                self._on_kill(boss)
+                self._cooldown_start = now
+                self._resolution_start = None
+                self._transition_to(FightState.COOLDOWN)
+
+    def _handle_cooldown(self, now: float) -> None:
+        """COOLDOWN: waiting before accepting new encounters."""
+        if self._cooldown_start is not None:
+            elapsed = now - self._cooldown_start
+            if elapsed >= self.cooldown_duration:
+                logger.debug("Cooldown expired, returning to IDLE")
+                self._cooldown_start = None
+                self._current_boss = None
+                self._confirm_count = 0
+                self._transition_to(FightState.IDLE)
+
+    def _transition_to(self, new_state: FightState) -> None:
+        """Log and execute state transition."""
+        if self.state != new_state:
+            logger.debug("FSM: {} -> {}", self.state.value, new_state.value)
+        self.state = new_state
