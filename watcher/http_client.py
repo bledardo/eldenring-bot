@@ -69,15 +69,15 @@ class WatcherHttpClient:
         try:
             payload = {
                 "type": event.get("type", "unknown"),
+                "event_id": event.get("event_id", ""),
                 "data": event,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "api_key": self._api_key,
             }
             response = self._session.post(
-                f"{self._api_url}/events",
+                f"{self._api_url}/api/events",
                 json=payload,
                 headers={
-                    "X-API-Key": self._api_key,
+                    "Authorization": f"Bearer {self._api_key}",
                     "Content-Type": "application/json",
                 },
                 timeout=10,
@@ -116,15 +116,15 @@ class WatcherHttpClient:
             try:
                 payload = {
                     "type": event.get("type", "unknown"),
+                    "event_id": event.get("event_id", ""),
                     "data": event,
                     "timestamp": event.get("queued_at", datetime.now(timezone.utc).isoformat()),
-                    "api_key": self._api_key,
                 }
                 response = self._session.post(
-                    f"{self._api_url}/events",
+                    f"{self._api_url}/api/events",
                     json=payload,
                     headers={
-                        "X-API-Key": self._api_key,
+                        "Authorization": f"Bearer {self._api_key}",
                         "Content-Type": "application/json",
                     },
                     timeout=10,
