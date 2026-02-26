@@ -9,8 +9,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Game Detection
 
-- [ ] **DETECT-01**: Watcher auto-detects Elden Ring process launch on Windows without manual start
-- [ ] **DETECT-02**: Watcher auto-detects when Elden Ring process closes (session end)
+- [x] **DETECT-01**: Watcher auto-detects Elden Ring process launch on Windows without manual start
+- [x] **DETECT-02**: Watcher auto-detects when Elden Ring process closes (session end)
 - [ ] **DETECT-03**: Watcher captures screen region where boss health bar appears using mss
 - [ ] **DETECT-04**: Watcher detects boss health bar appearance via OpenCV template matching
 - [ ] **DETECT-05**: Watcher reads boss name from health bar via OCR (EasyOCR)
@@ -103,8 +103,8 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DETECT-01 | Phase 1 | Pending |
-| DETECT-02 | Phase 1 | Pending |
+| DETECT-01 | Phase 1 | Complete |
+| DETECT-02 | Phase 1 | Complete |
 | DETECT-03 | Phase 1 | Pending |
 | DETECT-04 | Phase 1 | Pending |
 | DETECT-05 | Phase 1 | Pending |
