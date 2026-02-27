@@ -24,10 +24,9 @@ Copy-Item "\\wsl.localhost\Debian\home\hamza\eldenring-bot\build.spec" $localPro
 Copy-Item "\\wsl.localhost\Debian\home\hamza\eldenring-bot\build.py" $localProject -Force -ErrorAction SilentlyContinue
 Write-Host "Sync done" -ForegroundColor Green
 
-# Install dependencies (CPU-only PyTorch to keep build ~300MB instead of 3GB)
+# Install dependencies
 Push-Location $localProject
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --quiet
 pip install -r "\\wsl.localhost\Debian\home\hamza\eldenring-bot\requirements.txt" --quiet
 
 # Build
