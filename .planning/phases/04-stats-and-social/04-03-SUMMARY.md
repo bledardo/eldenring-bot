@@ -3,6 +3,7 @@ phase: 04-stats-and-social
 plan: 03
 subsystem: discord-commands
 tags: [discord, slash-commands, leaderboard, rankings]
+requirements-completed: [STAT-06]
 
 requires:
   - phase: 04

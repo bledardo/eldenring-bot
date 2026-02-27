@@ -3,6 +3,7 @@ phase: 04-stats-and-social
 plan: 02
 subsystem: discord-commands
 tags: [discord, slash-commands, embeds, pagination]
+requirements-completed: [STAT-04, STAT-05]
 
 requires:
   - phase: 04

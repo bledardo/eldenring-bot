@@ -3,6 +3,7 @@ phase: 04-stats-and-social
 plan: 01
 subsystem: storage
 tags: [storage, stats, aggregation, leaderboard]
+requirements-completed: [STAT-01, STAT-02, STAT-03, STAT-07]
 
 requires:
   - phase: 03
