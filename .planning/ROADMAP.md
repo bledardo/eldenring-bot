@@ -128,4 +128,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Discord Notifications and Betting | 4/4 | Complete | 2026-02-27 |
 | 4. Stats and Social | 3/3 | Complete    | 2026-02-27 |
 | 5. Fix Watcher-API Contract Breaks | 0/0 | Not Started | — |
-| 6. Cross-Phase Verification Sweep | 0/0 | Not Started | — |
+| 6. Cross-Phase Verification Sweep | 1/2 | In Progress|  |
