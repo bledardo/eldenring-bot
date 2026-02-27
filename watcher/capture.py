@@ -42,7 +42,8 @@ class CaptureRegion:
 
 
 # Pre-defined capture regions
-BOSS_BAR_REGION = CaptureRegion(0.20, 0.82, 0.80, 0.95)
+BOSS_BAR_REGION = CaptureRegion(0.15, 0.79, 0.85, 0.87)
+BOSS_NAME_REGION = CaptureRegion(0.20, 0.775, 0.80, 0.815)
 YOU_DIED_REGION = CaptureRegion(0.30, 0.35, 0.70, 0.55)
 COOP_REGION = CaptureRegion(0.0, 0.0, 0.15, 0.30)
 

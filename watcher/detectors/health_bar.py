@@ -100,24 +100,26 @@ class HealthBarDetector:
         return best_confidence >= self._threshold
 
     def _structural_detect(self, frame: np.ndarray) -> bool:
-        """Structural fallback: detect long horizontal bar by contour analysis.
+        """Structural fallback: detect boss health bar by red color + shape.
 
-        Looks for a wide, thin horizontal rectangle (aspect ratio >= 8:1).
-        The Elden Ring boss health bar has a distinctive elongated shape.
+        Isolates red pixels (HSV), then looks for a wide horizontal contour.
+        The Elden Ring boss health bar is a long red/dark-red bar.
         """
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # Apply edge detection
-        edges = cv2.Canny(gray, 50, 150)
-        # Dilate to close gaps
-        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 1))
-        edges = cv2.dilate(edges, kernel, iterations=1)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Red in HSV wraps around 0/180: H=0-10 or 170-180, S>40, V>40
+        mask1 = cv2.inRange(hsv, np.array([0, 40, 40]), np.array([12, 255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([168, 40, 40]), np.array([180, 255, 255]))
+        red_mask = mask1 | mask2
+
+        # Close small gaps in the bar
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 3))
+        red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_CLOSE, kernel)
+
+        contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         frame_h, frame_w = frame.shape[:2]
-        min_width = frame_w * 0.3  # Bar must be at least 30% of frame width
-        max_height = frame_h * 0.15  # Bar should be thin
-
+        min_width = frame_w * 0.2  # Bar must be at least 20% of frame width
         best_confidence = 0.0
 
         for contour in contours:
@@ -126,11 +128,11 @@ class HealthBarDetector:
                 continue
             aspect_ratio = w / h
 
-            # Health bar: wide (>30% frame), thin, high aspect ratio (>=8)
-            if w >= min_width and h <= max_height and aspect_ratio >= 8:
-                confidence = min(1.0, (aspect_ratio / 15) * (w / frame_w))
+            # Health bar: wide, thin, high aspect ratio
+            if w >= min_width and aspect_ratio >= 8:
+                confidence = min(1.0, (w / frame_w) * (aspect_ratio / 20))
                 best_confidence = max(best_confidence, confidence)
 
         self.last_confidence = best_confidence
         logger.trace("Health bar structural confidence: {:.3f}", best_confidence)
-        return best_confidence >= 0.3  # Lower threshold for structural
+        return best_confidence >= 0.3

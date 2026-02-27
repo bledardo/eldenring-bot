@@ -191,6 +191,34 @@ class TestSessionStart:
             _validate_uuid(event["event_id"])
 
 
+class TestGlobalDeathPayload:
+    def test_global_death_sends_event(self):
+        watcher, http_client = _make_watcher(session_id="sess-gd")
+        watcher._on_global_death()
+        event = _get_sent_event(http_client)
+        assert event["type"] == "global_death"
+        assert event["session_id"] == "sess-gd"
+        _validate_uuid(event["event_id"])
+        assert "boss_canonical_name" not in event
+
+    def test_global_death_cooldown_blocks_duplicate(self):
+        watcher, http_client = _make_watcher()
+        watcher._on_global_death()
+        assert http_client.send_event.call_count == 1
+        # Second call within cooldown should be ignored
+        watcher._on_global_death()
+        assert http_client.send_event.call_count == 1
+
+    def test_global_death_cooldown_expires(self):
+        watcher, http_client = _make_watcher()
+        watcher._on_global_death()
+        assert http_client.send_event.call_count == 1
+        # Simulate cooldown expiration
+        watcher._last_global_death_time = time.time() - 6.0
+        watcher._on_global_death()
+        assert http_client.send_event.call_count == 2
+
+
 class TestResetFightState:
     def test_reset_fight_state_clears_timing(self):
         watcher, _ = _make_watcher()

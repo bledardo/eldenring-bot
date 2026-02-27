@@ -41,7 +41,7 @@ class BossNameDetector:
         self,
         boss_names_path: Path,
         ocr_languages: list[str] | None = None,
-        match_threshold: int = 75,
+        match_threshold: int = 60,
     ) -> None:
         self._match_threshold = match_threshold
         self._boss_names: list[str] = []
@@ -94,34 +94,41 @@ class BossNameDetector:
 
         return binary
 
-    def extract_name(self, frame: np.ndarray) -> str | None:
-        """Run EasyOCR on preprocessed frame.
+    def _preprocess_white_text(self, frame: np.ndarray) -> np.ndarray:
+        """Isolate bright text (white/light grey) from complex backgrounds.
 
-        Args:
-            frame: BGR numpy array of the boss bar region.
-
-        Returns:
-            Raw OCR text or None if no text detected.
+        Filters on high value AND low saturation to reject colorful background
+        elements (grass, sky) while keeping the neutral-colored boss name text.
         """
+        h, w = frame.shape[:2]
+        upscaled = cv2.resize(frame, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+
+        hsv = cv2.cvtColor(upscaled, cv2.COLOR_BGR2HSV)
+        # White/light text: low saturation (<100) AND high value (>120)
+        mask = (hsv[:, :, 1] < 100) & (hsv[:, :, 2] > 120)
+        result = np.zeros(upscaled.shape[:2], dtype=np.uint8)
+        result[mask] = 255
+
+        return result
+
+    def _ocr_frame(self, preprocessed: np.ndarray) -> str | None:
+        """Run EasyOCR on a single preprocessed frame."""
         if self._reader is None:
             return None
-
-        preprocessed = self._preprocess(frame)
-
         try:
             results = self._reader.readtext(preprocessed, detail=0, paragraph=True)
             if results:
                 text = " ".join(results).strip()
-                self.last_raw_ocr = text
-                logger.debug("OCR raw text: '{}'", text)
                 return text if text else None
-            return None
         except Exception as exc:
             logger.warning("EasyOCR failed: {}", exc)
-            return None
+        return None
 
     def match_name(self, ocr_text: str) -> tuple[str, int] | None:
         """Fuzzy match OCR text to canonical boss names.
+
+        Tries ratio first, then token_sort_ratio (handles word reordering
+        and partial OCR results).
 
         Args:
             ocr_text: Raw text from OCR.
@@ -130,9 +137,11 @@ class BossNameDetector:
             Tuple of (canonical_name, score) or None if no match.
         """
         if rfprocess is None or fuzz is None or not self._boss_names:
+            logger.warning("Fuzzy matching unavailable (rapidfuzz not loaded)")
             return None
 
         try:
+            # Try strict ratio first
             result = rfprocess.extractOne(
                 ocr_text,
                 self._boss_names,
@@ -144,6 +153,27 @@ class BossNameDetector:
                 self.last_match_score = int(score)
                 logger.debug("Fuzzy match: '{}' -> '{}' (score={})", ocr_text, name, int(score))
                 return (name, int(score))
+
+            # Fallback: token_sort_ratio (handles partial/reordered OCR)
+            result = rfprocess.extractOne(
+                ocr_text,
+                self._boss_names,
+                scorer=fuzz.token_sort_ratio,
+                score_cutoff=self._match_threshold,
+            )
+            if result:
+                name, score, _ = result
+                self.last_match_score = int(score)
+                logger.debug("Fuzzy match (token_sort): '{}' -> '{}' (score={})", ocr_text, name, int(score))
+                return (name, int(score))
+
+            # Log best candidate even if below threshold for debugging
+            best = rfprocess.extractOne(ocr_text, self._boss_names, scorer=fuzz.ratio)
+            if best:
+                logger.debug(
+                    "Fuzzy match below threshold: '{}' -> '{}' (score={}, threshold={})",
+                    ocr_text, best[0], int(best[1]), self._match_threshold,
+                )
             self.last_match_score = None
             return None
         except Exception as exc:
@@ -151,24 +181,39 @@ class BossNameDetector:
             return None
 
     def detect(self, frame: np.ndarray | None) -> str | None:
-        """Convenience: extract name then fuzzy-match.
+        """Try each preprocessing strategy, OCR, and fuzzy-match end-to-end.
 
+        Returns the first strategy that produces a valid boss name match.
         WARNING: Expensive (~100-500ms). Only call when health bar first confirmed.
 
         Args:
-            frame: BGR numpy array of the boss bar region.
+            frame: BGR numpy array of the boss name region.
 
         Returns:
             Canonical boss name or None.
         """
         if frame is None or frame.size == 0:
             return None
-
-        raw_text = self.extract_name(frame)
-        if raw_text is None:
+        if self._reader is None:
+            logger.warning("EasyOCR reader not initialized — OCR disabled")
             return None
 
-        result = self.match_name(raw_text)
-        if result:
-            return result[0]
+        strategies = [
+            ("white_text", self._preprocess_white_text),
+            ("otsu", self._preprocess),
+        ]
+
+        for label, preprocess_fn in strategies:
+            preprocessed = preprocess_fn(frame)
+            raw_text = self._ocr_frame(preprocessed)
+            if not raw_text:
+                continue
+            self.last_raw_ocr = raw_text
+            logger.debug("OCR [{}] raw text: '{}'", label, raw_text)
+
+            result = self.match_name(raw_text)
+            if result:
+                return result[0]
+
+        logger.debug("OCR: no valid match from any strategy")
         return None

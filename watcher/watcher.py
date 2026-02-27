@@ -16,8 +16,9 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from watcher.capture import ScreenCapture, BOSS_BAR_REGION, YOU_DIED_REGION, COOP_REGION
+from watcher.capture import ScreenCapture, BOSS_BAR_REGION, BOSS_NAME_REGION, YOU_DIED_REGION, COOP_REGION
 from watcher.config import Config
+from watcher.paths import asset_path
 from watcher.detectors.health_bar import HealthBarDetector
 from watcher.detectors.you_died import YouDiedDetector
 from watcher.detectors.boss_name import BossNameDetector
@@ -106,10 +107,10 @@ class Watcher:
         self._capture = ScreenCapture(target_fps=config.capture_fps)
 
         # Initialize detectors
-        template_dir = Path("watcher/assets/templates")
+        template_dir = asset_path("watcher/assets/templates")
         self._health_bar = HealthBarDetector(template_dir)
         self._you_died = YouDiedDetector(template_dir)
-        self._boss_name = BossNameDetector(Path("watcher/assets/boss_names.json"))
+        self._boss_name = BossNameDetector(asset_path("watcher/assets/boss_names.json"))
         self._coop = CoopDetector(template_dir)
 
         # Initialize FSM
@@ -126,6 +127,7 @@ class Watcher:
         self._last_flush_time: float = 0.0
         self._session_id: str | None = None
         self._fight_start_time: float | None = None
+        self._last_global_death_time: float = 0.0
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
@@ -165,16 +167,13 @@ class Watcher:
         while self._running:
             frame_start = time.perf_counter()
 
-            # Check game focus
-            if not _is_game_focused(self._game_hwnd):
-                if not self._was_paused:
-                    logger.info("Detection paused: game not in focus")
-                    self._was_paused = True
-                time.sleep(0.5)
-                continue
-
-            if self._was_paused:
-                logger.info("Detection resumed: game in focus")
+            # Check game focus (log only, never pause detection)
+            focused = _is_game_focused(self._game_hwnd)
+            if not focused and not self._was_paused:
+                logger.info("Game lost focus (detection continues)")
+                self._was_paused = True
+            elif focused and self._was_paused:
+                logger.info("Game regained focus")
                 self._was_paused = False
                 self._tray.set_status(TrayStatus.WATCHING)
 
@@ -186,12 +185,17 @@ class Watcher:
             if boss_bar_frame is not None:
                 bar_detected = self._health_bar.detect(boss_bar_frame)
 
-            # Run death detector only during active fight or resolving
+            # Run death detector in all states (boss fights + global deaths)
             death_detected = False
-            if self._fsm.state in (FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING):
-                you_died_frame = self._capture.capture_region(YOU_DIED_REGION)
-                if you_died_frame is not None:
-                    death_detected = self._you_died.detect(you_died_frame)
+            you_died_frame = self._capture.capture_region(YOU_DIED_REGION)
+            if you_died_frame is not None:
+                death_detected = self._you_died.detect(you_died_frame)
+
+            # Global death: YOU DIED detected outside a boss fight
+            if death_detected and self._fsm.state not in (
+                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
+            ):
+                self._on_global_death()
 
             # Check co-op only when encounter first confirmed
             if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
@@ -205,13 +209,24 @@ class Watcher:
                 bar_detected
                 and self._fsm.state == FightState.ENCOUNTER_PENDING
                 and self._current_boss_name is None
-                and boss_bar_frame is not None
             ):
-                detected_name = self._boss_name.detect(boss_bar_frame)
+                # Try dedicated name region first, fall back to full bar region
+                boss_name_frame = self._capture.capture_region(BOSS_NAME_REGION)
+                detected_name = None
+                if boss_name_frame is not None:
+                    detected_name = self._boss_name.detect(boss_name_frame)
+                if detected_name is None and boss_bar_frame is not None:
+                    detected_name = self._boss_name.detect(boss_bar_frame)
                 if detected_name:
                     self._current_boss_name = detected_name
                     boss_name = detected_name
                     logger.info("Boss identified: {}", detected_name)
+                else:
+                    logger.warning(
+                        "OCR failed (raw='{}', score={})",
+                        self._boss_name.last_raw_ocr,
+                        self._boss_name.last_match_score,
+                    )
 
             # Feed FSM
             self._fsm.process_frame(
@@ -298,6 +313,25 @@ class Watcher:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         self._reset_fight_state()
+
+    def _on_global_death(self) -> None:
+        """Non-boss death detected (mob, fall, trap, etc.).
+
+        Uses a 5-second cooldown to avoid duplicate detections while
+        the "YOU DIED" text remains on screen.
+        """
+        now = time.time()
+        if now - self._last_global_death_time < 5.0:
+            return
+        self._last_global_death_time = now
+
+        logger.info("Global death detected (non-boss)")
+        self._http_client.send_event({
+            "type": "global_death",
+            "event_id": str(uuid.uuid4()),
+            "session_id": self._session_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
 
     def _reset_fight_state(self) -> None:
         """Reset per-fight tracking state."""
