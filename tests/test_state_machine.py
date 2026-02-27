@@ -134,8 +134,8 @@ class TestFightResolution:
         assert len(deaths) == 1
         assert deaths[0][1] == "Margit, l'Omen Feal"
 
-    def test_boss_kill_on_timeout(self):
-        """Bar gone for >phase_transition_window without death = kill."""
+    def test_timeout_resolves_as_abandon(self):
+        """Bar gone for >phase_transition_window without death or kill text = abandon."""
         events = []
         fsm = BossFightFSM(
             on_encounter=lambda n: events.append(("encounter", n)),
@@ -155,9 +155,12 @@ class TestFightResolution:
             fsm.process_frame(boss_bar_detected=False)
             time.sleep(0.05)
 
+        abandons = [e for e in events if e[0] == "abandon"]
+        assert len(abandons) == 1
+        assert abandons[0][1] == "Godrick le Greffé"
+        # No kill should be emitted
         kills = [e for e in events if e[0] == "kill"]
-        assert len(kills) == 1
-        assert kills[0][1] == "Godrick le Greffé"
+        assert len(kills) == 0
 
     def test_fight_abandoned(self):
         """Bar gone without death and player left area = abandon event."""
@@ -174,14 +177,16 @@ class TestFightResolution:
         # Encounter
         for _ in range(5):
             fsm.process_frame(boss_bar_detected=True, boss_name="Test Boss")
-        # Bar disappears — timeout → abandon or kill (both valid, FSM decides)
+        # Bar disappears — timeout → abandon (no kill text seen)
         start = time.time()
         while time.time() - start < 0.8:
             fsm.process_frame(boss_bar_detected=False)
             time.sleep(0.05)
-        # Either kill or abandon should be emitted (not both)
-        resolutions = [e for e in events if e[0] in ("kill", "abandon")]
-        assert len(resolutions) == 1
+        abandons = [e for e in events if e[0] == "abandon"]
+        assert len(abandons) == 1
+        # No kill should be emitted without kill text
+        kills = [e for e in events if e[0] == "kill"]
+        assert len(kills) == 0
 
 
 class TestMultiPhase:
@@ -234,7 +239,7 @@ class TestCooldown:
         # Fight 1
         for _ in range(5):
             fsm.process_frame(boss_bar_detected=True, boss_name="Boss A")
-        # Kill (grace + transition + cooldown)
+        # Bar disappears → abandon (grace + transition + cooldown)
         start = time.time()
         while time.time() - start < 1.0:
             fsm.process_frame(boss_bar_detected=False)
@@ -348,8 +353,8 @@ class TestKillDetected:
         assert len(events) == 0
         assert fsm.state == FightState.IDLE
 
-    def test_timeout_still_works_as_fallback(self):
-        """When gold text is not detected, timeout kill still works."""
+    def test_timeout_without_kill_text_is_abandon(self):
+        """When gold text is not detected, timeout resolves as abandon (not kill)."""
         events = []
         fsm = BossFightFSM(
             on_encounter=lambda n: events.append(("encounter", n)),
@@ -366,5 +371,7 @@ class TestKillDetected:
         while time.time() - start < 0.8:
             fsm.process_frame(boss_bar_detected=False, kill_detected=False)
             time.sleep(0.05)
+        abandons = [e for e in events if e[0] == "abandon"]
+        assert len(abandons) == 1
         kills = [e for e in events if e[0] == "kill"]
-        assert len(kills) == 1
+        assert len(kills) == 0

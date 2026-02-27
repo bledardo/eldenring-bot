@@ -42,7 +42,8 @@ class CaptureRegion:
 
 
 # Pre-defined capture regions
-BOSS_BAR_REGION = CaptureRegion(0.15, 0.79, 0.85, 0.87)
+# Combined region covers both boss name text and health bar
+BOSS_BAR_REGION = CaptureRegion(0.15, 0.77, 0.85, 0.87)
 BOSS_NAME_REGION = CaptureRegion(0.20, 0.775, 0.80, 0.815)
 YOU_DIED_REGION = CaptureRegion(0.30, 0.35, 0.70, 0.55)
 COOP_REGION = CaptureRegion(0.0, 0.0, 0.15, 0.30)
@@ -166,6 +167,47 @@ class ScreenCapture:
         except Exception as exc:
             logger.debug("Capture failed: {}", exc)
             return None
+
+    def grab_full(self) -> np.ndarray | None:
+        """Grab full screen once. Use crop_region() to extract sub-regions.
+
+        BetterCam can fail when grab() is called multiple times per frame
+        for different regions. Grabbing full screen once and cropping is
+        more reliable and avoids this issue.
+
+        Returns:
+            BGR numpy array of the full screen, or None if capture fails.
+        """
+        try:
+            if self._backend == "bettercam" and self._camera is not None:
+                frame = self._camera.grab()
+                if frame is not None:
+                    return np.array(frame)
+                return None
+
+            elif self._backend == "mss" and self._sct is not None:
+                monitor = self._sct.monitors[1]
+                screenshot = self._sct.grab(monitor)
+                frame = np.array(screenshot)
+                return frame[:, :, :3]
+
+            return None
+        except Exception as exc:
+            logger.debug("Full capture failed: {}", exc)
+            return None
+
+    def crop_region(self, full_frame: np.ndarray, region: CaptureRegion) -> np.ndarray:
+        """Crop a region from a full-screen frame.
+
+        Args:
+            full_frame: Full-screen BGR numpy array from grab_full().
+            region: CaptureRegion with percentage-based coordinates.
+
+        Returns:
+            Cropped BGR numpy array.
+        """
+        left, top, right, bottom = region.to_pixels(self._screen_width, self._screen_height)
+        return full_frame[top:bottom, left:right]
 
     def capture_full(self) -> np.ndarray | None:
         """Capture full screen (used for debug screenshots).

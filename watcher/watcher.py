@@ -111,9 +111,9 @@ class Watcher:
         # Initialize detectors
         template_dir = asset_path("watcher/assets/templates")
         self._health_bar = HealthBarDetector(template_dir)
-        self._you_died = YouDiedDetector(template_dir)
-        self._enemy_felled = EnemyFelledDetector()
         self._boss_name = BossNameDetector(asset_path("watcher/assets/boss_names.json"))
+        self._you_died = YouDiedDetector(template_dir, reader=self._boss_name._reader)
+        self._enemy_felled = EnemyFelledDetector(template_dir=template_dir)
         self._coop = CoopDetector(template_dir)
 
         # Initialize FSM
@@ -179,7 +179,7 @@ class Watcher:
                 self._was_paused = True
                 self._you_died._confirmer.reset()
                 self._health_bar._confirmer.reset()
-                self._enemy_felled._confirmer.reset()
+                self._enemy_felled.reset()
             elif focused and self._was_paused:
                 logger.info("Game regained focus")
                 self._was_paused = False
@@ -190,19 +190,22 @@ class Watcher:
                 time.sleep(frame_interval)
                 continue
 
-            # Capture boss bar region (always needed)
-            boss_bar_frame = self._capture.capture_region(BOSS_BAR_REGION)
+            # Single full-screen capture per frame — BetterCam can fail
+            # when grab() is called multiple times in quick succession.
+            full_frame = self._capture.grab_full()
+            if full_frame is None:
+                time.sleep(frame_interval)
+                continue
+
+            # Crop all needed regions from the single capture
+            boss_bar_frame = self._capture.crop_region(full_frame, BOSS_BAR_REGION)
+            you_died_frame = self._capture.crop_region(full_frame, YOU_DIED_REGION)
 
             # Run health bar detector
-            bar_detected = False
-            if boss_bar_frame is not None:
-                bar_detected = self._health_bar.detect(boss_bar_frame)
+            bar_detected = self._health_bar.detect(boss_bar_frame)
 
             # Run death detector in all states (boss fights + global deaths)
-            death_detected = False
-            you_died_frame = self._capture.capture_region(YOU_DIED_REGION)
-            if you_died_frame is not None:
-                death_detected = self._you_died.detect(you_died_frame)
+            death_detected = self._you_died.detect(you_died_frame, in_combat=False)
 
             # Global death: YOU DIED detected outside a boss fight
             if death_detected and self._fsm.state not in (
@@ -212,23 +215,19 @@ class Watcher:
 
             # Run kill confirmation detector (same region as death)
             kill_detected = False
-            if you_died_frame is not None and self._fsm.state in (
+            if self._fsm.state in (
                 FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
             ):
                 kill_detected = self._enemy_felled.detect(you_died_frame)
                 if kill_detected:
-                    # Capture full screen for the kill notification
-                    kill_frame = self._capture.capture_full()
-                    if kill_frame is not None:
-                        _, png_buf = cv2.imencode(".png", kill_frame)
-                        self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
-                        logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
+                    _, png_buf = cv2.imencode(".png", full_frame)
+                    self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
+                    logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
 
             # Check co-op only when encounter first confirmed
             if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
-                coop_frame = self._capture.capture_region(COOP_REGION)
-                if coop_frame is not None:
-                    self._coop_detected = self._coop.detect(coop_frame)
+                coop_frame = self._capture.crop_region(full_frame, COOP_REGION)
+                self._coop_detected = self._coop.detect(coop_frame)
 
             # Run OCR once per encounter (when health bar first confirmed)
             boss_name = self._current_boss_name

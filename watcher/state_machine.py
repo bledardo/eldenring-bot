@@ -206,10 +206,10 @@ class BossFightFSM:
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
             if elapsed >= self.phase_transition_window:
-                # Timeout — resolve as kill (default resolution)
+                # Timeout — no kill text seen, resolve as abandon
                 boss = self._current_boss or "Unknown Boss"
-                logger.info("Boss kill detected (bar gone {}s): {}", f"{elapsed:.1f}", boss)
-                self._on_kill(boss)
+                logger.info("Fight abandoned (bar gone {}s, no kill text): {}", f"{elapsed:.1f}", boss)
+                self._on_abandon(boss)
                 self._cooldown_start = now
                 self._resolution_start = None
                 self._transition_to(FightState.COOLDOWN)

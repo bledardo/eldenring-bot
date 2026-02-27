@@ -1,6 +1,8 @@
-"""Tests for the enemy felled (gold text) detector."""
+"""Tests for the OCR-based enemy felled detector."""
 
 from __future__ import annotations
+
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -8,64 +10,133 @@ import pytest
 from watcher.detectors.enemy_felled import EnemyFelledDetector
 
 
+def _make_dark_frame(brightness: int = 30) -> np.ndarray:
+    """Create a dark BGR frame (passes brightness pre-filter)."""
+    return np.full((200, 400, 3), brightness, dtype=np.uint8)
+
+
+def _make_bright_frame(brightness: int = 150) -> np.ndarray:
+    """Create a bright BGR frame (fails brightness pre-filter)."""
+    return np.full((200, 400, 3), brightness, dtype=np.uint8)
+
+
+def _mock_reader(texts: list[list[str]]) -> MagicMock:
+    """Create a mock EasyOCR reader that returns texts sequentially."""
+    reader = MagicMock()
+    reader.readtext = MagicMock(side_effect=texts)
+    return reader
+
+
 class TestEnemyFelledDetector:
-    """Gold text detection on dark background."""
+    """OCR-based kill text detection."""
 
-    def test_dark_background_with_gold_text(self):
-        """Gold pixels on dark background should be detected."""
-        detector = EnemyFelledDetector(confirm_frames=1)
-        frame = np.zeros((200, 400, 3), dtype=np.uint8)
-        # Gold color in BGR: B=0, G=180, R=220
-        frame[80:120, 150:250] = (0, 180, 220)
-        assert detector.detect(frame) is True
-        assert detector.last_confidence > 0.4
+    def test_ennemi_abattu_detected(self):
+        """'ENNEMI ABATTU' text should be detected."""
+        reader = _mock_reader([["ENNEMI ABATTU"], ["ENNEMI ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is True
 
-    def test_bright_scene_rejected(self):
-        """Bright gameplay scene should NOT trigger detection."""
-        detector = EnemyFelledDetector(confirm_frames=1)
-        frame = np.full((200, 400, 3), 150, dtype=np.uint8)
-        assert detector.detect(frame) is False
+    def test_demi_dieu_abattu_detected(self):
+        """'DEMI-DIEU ABATTU' text should be detected."""
+        reader = _mock_reader([["DEMI-DIEU ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is True
 
-    def test_dark_scene_no_gold_rejected(self):
-        """Dark scene without gold text should NOT trigger."""
-        detector = EnemyFelledDetector(confirm_frames=1)
-        frame = np.zeros((200, 400, 3), dtype=np.uint8)
-        assert detector.detect(frame) is False
+    def test_legende_abattue_detected(self):
+        """'LÉGENDE ABATTUE' matches via ABATTUE keyword."""
+        reader = _mock_reader([["LÉGENDE ABATTUE"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is True
 
-    def test_red_death_screen_rejected(self):
-        """Red YOU DIED text should NOT trigger gold detection."""
-        detector = EnemyFelledDetector(confirm_frames=1)
-        frame = np.zeros((200, 400, 3), dtype=np.uint8)
-        # Red color in BGR: B=0, G=0, R=200
-        frame[80:120, 150:250] = (0, 0, 200)
-        assert detector.detect(frame) is False
+    def test_felled_english_detected(self):
+        """English 'FELLED' text should be detected."""
+        reader = _mock_reader([["GREAT ENEMY FELLED"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is True
+
+    def test_random_text_rejected(self):
+        """Random OCR text should NOT trigger detection."""
+        reader = _mock_reader([["SOME RANDOM TEXT"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is False
+
+    def test_empty_ocr_rejected(self):
+        """Empty OCR results should NOT trigger."""
+        reader = _mock_reader([[]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is False
+
+    def test_bright_frame_rejected(self):
+        """Bright frames should be rejected before OCR runs."""
+        reader = _mock_reader([])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_bright_frame()) is False
+        reader.readtext.assert_not_called()
 
     def test_consecutive_confirmation(self):
-        """Requires N consecutive frames before confirming."""
-        detector = EnemyFelledDetector(confirm_frames=2)
-        frame = np.zeros((200, 400, 3), dtype=np.uint8)
-        frame[80:120, 150:250] = (0, 180, 220)
-        assert detector.detect(frame) is False  # frame 1
-        assert detector.detect(frame) is True   # frame 2
+        """Requires N consecutive OCR hits before confirming."""
+        reader = _mock_reader([["ENNEMI ABATTU"], ["ENNEMI ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=2, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is False  # hit 1
+        assert detector.detect(_make_dark_frame()) is True   # hit 2
+
+    def test_non_detection_resets_counter(self):
+        """A miss between hits resets the consecutive counter."""
+        reader = _mock_reader([
+            ["ENNEMI ABATTU"],  # hit 1
+            ["NOTHING HERE"],   # miss -> reset
+            ["ENNEMI ABATTU"],  # hit 1 again
+        ])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=2, ocr_interval=0)
+        detector.detect(_make_dark_frame())  # hit 1
+        detector.detect(_make_dark_frame())  # miss
+        assert detector.detect(_make_dark_frame()) is False  # hit 1 again, not 2
 
     def test_none_frame_handled(self):
-        """None frame should return False and reset confirmer."""
-        detector = EnemyFelledDetector(confirm_frames=1)
+        """None frame should return False."""
+        detector = EnemyFelledDetector(reader=MagicMock(), confirm_count=1, ocr_interval=0)
         assert detector.detect(None) is False
 
     def test_empty_frame_handled(self):
         """Empty frame should return False."""
-        detector = EnemyFelledDetector(confirm_frames=1)
-        frame = np.array([], dtype=np.uint8)
-        assert detector.detect(frame) is False
+        detector = EnemyFelledDetector(reader=MagicMock(), confirm_count=1, ocr_interval=0)
+        assert detector.detect(np.array([], dtype=np.uint8)) is False
 
-    def test_reset_on_non_detection(self):
-        """Non-gold frame resets consecutive counter."""
-        detector = EnemyFelledDetector(confirm_frames=2)
-        gold_frame = np.zeros((200, 400, 3), dtype=np.uint8)
-        gold_frame[80:120, 150:250] = (0, 180, 220)
-        bright_frame = np.full((200, 400, 3), 150, dtype=np.uint8)
+    def test_no_reader_returns_false(self):
+        """No OCR reader should always return False."""
+        detector = EnemyFelledDetector(reader=None, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is False
 
-        detector.detect(gold_frame)   # count=1
-        detector.detect(bright_frame) # count=0
-        assert detector.detect(gold_frame) is False  # count=1 again
+    def test_reset_clears_state(self):
+        """reset() should clear consecutive hits."""
+        reader = _mock_reader([["ENNEMI ABATTU"], ["ENNEMI ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=2, ocr_interval=0)
+        detector.detect(_make_dark_frame())  # hit 1
+        detector.reset()
+        assert detector.detect(_make_dark_frame()) is False  # hit 1 again after reset
+
+    def test_confirmer_proxy_reset(self):
+        """_confirmer.reset() proxy should call reset()."""
+        reader = _mock_reader([["ENNEMI ABATTU"], ["ENNEMI ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=2, ocr_interval=0)
+        detector.detect(_make_dark_frame())  # hit 1
+        detector._confirmer.reset()
+        assert detector._consecutive_hits == 0
+
+    def test_throttle_returns_last_state(self):
+        """During throttle period, return last known state without OCR."""
+        reader = _mock_reader([["ENNEMI ABATTU"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=10.0)
+
+        # First call runs OCR and detects
+        assert detector.detect(_make_dark_frame()) is True
+
+        # Second call is throttled — returns True (last state) without OCR
+        assert detector.detect(_make_dark_frame()) is True
+        assert reader.readtext.call_count == 1  # OCR only ran once
+
+    def test_keyword_case_insensitive(self):
+        """OCR text in mixed case should still match keywords."""
+        reader = _mock_reader([["Ennemi Abattu"]])
+        detector = EnemyFelledDetector(reader=reader, confirm_count=1, ocr_interval=0)
+        assert detector.detect(_make_dark_frame()) is True

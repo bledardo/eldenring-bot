@@ -1,86 +1,122 @@
-"""Gold text detection for kill confirmation ("ENNEMI ABATTU" / "DEMI-DIEU ABATTU").
+"""Kill confirmation via template matching on gold-channel extraction.
 
-The game displays gold/yellow text on a dark background in the center of the screen
-when a boss or enemy is defeated. Same screen region as YOU DIED.
+The game displays "ENNEMI ABATTU" / "DEMI-DIEU ABATTU" / "ENEMY FELLED"
+in gold text. We match on "ABATTU" which is common to all French variants.
+
+Template matching on gold-channel binary is fast (<1ms) and avoids
+false positives from other gold UI elements (cavalier names, etc.).
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 import cv2
 import numpy as np
 from loguru import logger
 
-from watcher.detectors import ConsecutiveConfirmer
-
 
 class EnemyFelledDetector:
-    """Detect gold "ENNEMI ABATTU" / "DEMI-DIEU ABATTU" text.
-
-    Uses color heuristic: gold/yellow pixels (HSV) on a dark background.
-    The kill text stays visible for ~3 seconds, so 2 frames is sufficient.
+    """Detect kill text via template matching on gold-channel binary.
 
     Args:
-        confirm_frames: Consecutive frames for confirmation.
+        template_dir: Directory containing template images.
+        reader: Kept for API compat (unused with template matching).
+        confirm_count: Consecutive hits needed before confirming.
+        threshold: Template matching confidence threshold.
     """
 
-    def __init__(self, confirm_frames: int = 2) -> None:
-        self._confirmer = ConsecutiveConfirmer(confirm_frames)
+    def __init__(
+        self,
+        template_dir: Path | None = None,
+        reader=None,
+        confirm_count: int = 2,
+        threshold: float = 0.65,
+    ) -> None:
+        self._threshold = threshold
+        self._confirm_count = confirm_count
+        self._consecutive_hits = 0
         self.last_confidence: float = 0.0
+        self.last_raw_ocr: str | None = None
+        self._confirmer = _ResetProxy(self)
+
+        # Load kill text template
+        self._template: np.ndarray | None = None
+        if template_dir is not None:
+            tmpl_path = template_dir / "abattu.png"
+            if tmpl_path.exists():
+                self._template = cv2.imread(str(tmpl_path), cv2.IMREAD_GRAYSCALE)
+                logger.debug(
+                    "Kill template loaded: {} ({}x{})",
+                    tmpl_path.name,
+                    self._template.shape[1],
+                    self._template.shape[0],
+                )
+            else:
+                logger.warning("Kill template not found: {}", tmpl_path)
 
     def detect(self, frame: np.ndarray | None) -> bool:
-        """Detect if gold kill text is present.
+        """Detect if kill text is present via template matching.
 
         Args:
             frame: BGR numpy array from screen capture.
 
         Returns:
-            True if gold text confirmed (N consecutive frames).
+            True if kill text confirmed (N consecutive hits).
         """
         if frame is None or frame.size == 0:
-            self._confirmer.update(False)
+            self._consecutive_hits = 0
             return False
 
-        detected = self._color_detect(frame)
-        return self._confirmer.update(detected)
-
-    def _color_detect(self, frame: np.ndarray) -> bool:
-        """Gold color heuristic detection.
-
-        The kill text is gold/yellow on a dark/black background:
-        - Dark background: grayscale mean brightness < 80
-        - Gold pixels: HSV hue 15-45, saturation > 80, value > 150
-        - Ratio of gold pixels to total must exceed threshold
-        """
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        mean_brightness = np.mean(gray)
-
-        if mean_brightness > 80:
-            self.last_confidence = 0.0
+        if self._template is None:
             return False
 
-        # Analyze center portion where text appears
-        h, w = frame.shape[:2]
-        center = frame[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4]
+        detected = self._template_detect(frame)
+        if detected:
+            self._consecutive_hits += 1
+            logger.debug(
+                "Kill template hit ({}/{})",
+                self._consecutive_hits,
+                self._confirm_count,
+            )
+        else:
+            self._consecutive_hits = 0
 
-        # Convert to HSV and create gold mask
-        hsv = cv2.cvtColor(center, cv2.COLOR_BGR2HSV)
-        gold_mask = cv2.inRange(hsv, (15, 80, 150), (45, 255, 255))
+        return self._consecutive_hits >= self._confirm_count
 
-        # Calculate gold pixel ratio
-        total_pixels = gold_mask.size
-        gold_pixels = cv2.countNonZero(gold_mask)
-        gold_ratio = gold_pixels / total_pixels if total_pixels > 0 else 0
+    def _preprocess_gold(self, frame: np.ndarray) -> np.ndarray:
+        """Gold-channel extraction → threshold → morph close."""
+        b_ch, g_ch, r_ch = cv2.split(frame)
+        gold = np.clip(
+            np.minimum(r_ch.astype(int), g_ch.astype(int)) - b_ch.astype(int),
+            0, 255,
+        ).astype(np.uint8)
+        _, binary = cv2.threshold(gold, 50, 255, cv2.THRESH_BINARY)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        return cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
-        # Compute confidence
-        darkness_score = max(0, (80 - mean_brightness) / 80)
-        gold_score = min(1.0, gold_ratio / 0.01)  # normalize: 1% gold pixels = max score
-        confidence = darkness_score * 0.3 + gold_score * 0.7
+    def _template_detect(self, frame: np.ndarray) -> bool:
+        """Template matching on gold-channel binary. Fast (<1ms)."""
+        binary = self._preprocess_gold(frame)
 
-        self.last_confidence = confidence
-        logger.trace(
-            "Enemy felled heuristic: brightness={:.0f}, gold_ratio={:.4f}, conf={:.3f}",
-            mean_brightness,
-            gold_ratio,
-            confidence,
-        )
-        return confidence >= 0.4
+        result = cv2.matchTemplate(binary, self._template, cv2.TM_CCOEFF_NORMED)
+        _, max_val, _, _ = cv2.minMaxLoc(result)
+
+        self.last_confidence = max_val
+        if max_val >= self._threshold:
+            return True
+        return False
+
+    def reset(self) -> None:
+        """Reset detection state."""
+        self._consecutive_hits = 0
+
+
+class _ResetProxy:
+    """Proxy so watcher._enemy_felled._confirmer.reset() still works."""
+
+    def __init__(self, detector: EnemyFelledDetector) -> None:
+        self._detector = detector
+
+    def reset(self) -> None:
+        self._detector.reset()

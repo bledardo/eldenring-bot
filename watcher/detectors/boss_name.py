@@ -73,23 +73,19 @@ class BossNameDetector:
     def _preprocess(self, frame: np.ndarray) -> np.ndarray:
         """Preprocessing pipeline for OCR accuracy.
 
-        1. Upscale 2x (more pixels for OCR)
+        1. Upscale 4x (more pixels for OCR)
         2. Convert to grayscale
         3. CLAHE for contrast on gradient backgrounds
         4. Binary threshold (Otsu's method)
         """
-        # Upscale 2x
         h, w = frame.shape[:2]
-        upscaled = cv2.resize(frame, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+        upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
 
-        # Grayscale
         gray = cv2.cvtColor(upscaled, cv2.COLOR_BGR2GRAY)
 
-        # CLAHE for adaptive contrast
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         enhanced = clahe.apply(gray)
 
-        # Binary threshold (Otsu's)
         _, binary = cv2.threshold(enhanced, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
         return binary
@@ -97,17 +93,55 @@ class BossNameDetector:
     def _preprocess_white_text(self, frame: np.ndarray) -> np.ndarray:
         """Isolate bright text (white/light grey) from complex backgrounds.
 
-        Filters on high value AND low saturation to reject colorful background
+        Uses 4x upscale and tight HSV thresholds to reject colorful background
         elements (grass, sky) while keeping the neutral-colored boss name text.
+        Morphological close fills small gaps in letter strokes.
         """
         h, w = frame.shape[:2]
-        upscaled = cv2.resize(frame, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+        upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
 
         hsv = cv2.cvtColor(upscaled, cv2.COLOR_BGR2HSV)
-        # White/light text: low saturation (<100) AND high value (>120)
+        # White/light text: low saturation (<60) AND high value (>160)
+        mask = (hsv[:, :, 1] < 60) & (hsv[:, :, 2] > 160)
+        result = np.zeros(upscaled.shape[:2], dtype=np.uint8)
+        result[mask] = 255
+
+        # Close small gaps in letter strokes
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        result = cv2.morphologyEx(result, cv2.MORPH_CLOSE, kernel)
+
+        return result
+
+    def _preprocess_white_text_relaxed(self, frame: np.ndarray) -> np.ndarray:
+        """Same as white_text but with relaxed thresholds for darker scenes."""
+        h, w = frame.shape[:2]
+        upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+
+        hsv = cv2.cvtColor(upscaled, cv2.COLOR_BGR2HSV)
+        # Relaxed: saturation < 100, value > 120
         mask = (hsv[:, :, 1] < 100) & (hsv[:, :, 2] > 120)
         result = np.zeros(upscaled.shape[:2], dtype=np.uint8)
         result[mask] = 255
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        result = cv2.morphologyEx(result, cv2.MORPH_CLOSE, kernel)
+
+        return result
+
+    def _preprocess_bright_threshold(self, frame: np.ndarray) -> np.ndarray:
+        """Simple grayscale threshold for bright white text.
+
+        Color-space agnostic — works regardless of BGR/RGB channel order.
+        """
+        h, w = frame.shape[:2]
+        upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+
+        gray = cv2.cvtColor(upscaled, cv2.COLOR_BGR2GRAY)
+        # Boss name text is bright white (180+)
+        _, result = cv2.threshold(gray, 180, 255, cv2.THRESH_BINARY)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        result = cv2.morphologyEx(result, cv2.MORPH_CLOSE, kernel)
 
         return result
 
@@ -127,8 +161,8 @@ class BossNameDetector:
     def match_name(self, ocr_text: str) -> tuple[str, int] | None:
         """Fuzzy match OCR text to canonical boss names.
 
-        Tries ratio first, then token_sort_ratio (handles word reordering
-        and partial OCR results).
+        Tries ratio, then token_sort_ratio, then token_set_ratio
+        (progressively more tolerant of OCR noise).
 
         Args:
             ocr_text: Raw text from OCR.
@@ -141,31 +175,27 @@ class BossNameDetector:
             return None
 
         try:
-            # Try strict ratio first
-            result = rfprocess.extractOne(
-                ocr_text,
-                self._boss_names,
-                scorer=fuzz.ratio,
-                score_cutoff=self._match_threshold,
-            )
-            if result:
-                name, score, _ = result
-                self.last_match_score = int(score)
-                logger.debug("Fuzzy match: '{}' -> '{}' (score={})", ocr_text, name, int(score))
-                return (name, int(score))
+            scorers = [
+                ("ratio", fuzz.ratio, self._match_threshold),
+                ("token_sort", fuzz.token_sort_ratio, self._match_threshold),
+                ("token_set", fuzz.token_set_ratio, self._match_threshold),
+            ]
 
-            # Fallback: token_sort_ratio (handles partial/reordered OCR)
-            result = rfprocess.extractOne(
-                ocr_text,
-                self._boss_names,
-                scorer=fuzz.token_sort_ratio,
-                score_cutoff=self._match_threshold,
-            )
-            if result:
-                name, score, _ = result
-                self.last_match_score = int(score)
-                logger.debug("Fuzzy match (token_sort): '{}' -> '{}' (score={})", ocr_text, name, int(score))
-                return (name, int(score))
+            for scorer_name, scorer, cutoff in scorers:
+                result = rfprocess.extractOne(
+                    ocr_text,
+                    self._boss_names,
+                    scorer=scorer,
+                    score_cutoff=cutoff,
+                )
+                if result:
+                    name, score, _ = result
+                    self.last_match_score = int(score)
+                    logger.debug(
+                        "Fuzzy match ({}): '{}' -> '{}' (score={})",
+                        scorer_name, ocr_text, name, int(score),
+                    )
+                    return (name, int(score))
 
             # Log best candidate even if below threshold for debugging
             best = rfprocess.extractOne(ocr_text, self._boss_names, scorer=fuzz.ratio)
@@ -198,13 +228,27 @@ class BossNameDetector:
             logger.warning("EasyOCR reader not initialized — OCR disabled")
             return None
 
+        # Ensure contiguous BGR array (BetterCam may return non-contiguous)
+        frame = np.ascontiguousarray(frame[:, :, :3])
+
+        logger.debug(
+            "OCR input frame: shape={}, dtype={}, range=[{},{}]",
+            frame.shape, frame.dtype, frame.min(), frame.max(),
+        )
+
         strategies = [
             ("white_text", self._preprocess_white_text),
+            ("bright_thresh", self._preprocess_bright_threshold),
+            ("white_text_relaxed", self._preprocess_white_text_relaxed),
             ("otsu", self._preprocess),
         ]
 
+        # Save preprocessed debug images on first call per detect()
+        debug_preprocessed: dict[str, np.ndarray] = {}
+
         for label, preprocess_fn in strategies:
             preprocessed = preprocess_fn(frame)
+            debug_preprocessed[label] = preprocessed
             raw_text = self._ocr_frame(preprocessed)
             if not raw_text:
                 continue
@@ -214,6 +258,10 @@ class BossNameDetector:
             result = self.match_name(raw_text)
             if result:
                 return result[0]
+
+        # Store debug images for the watcher to save on failure
+        self._last_debug_frames = debug_preprocessed
+        self._last_input_frame = frame
 
         logger.debug("OCR: no valid match from any strategy")
         return None

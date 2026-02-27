@@ -37,7 +37,7 @@ class TestFullPipeline:
         assert len([e for e in events if e[0] == "encounter"]) == 1
 
     def test_encounter_to_kill_sequence(self):
-        """Simulate: boss bar appears -> confirmed -> bar gone >window -> kill."""
+        """Simulate: boss bar appears -> confirmed -> kill text detected -> kill."""
         events: list[tuple[str, str]] = []
         fsm = BossFightFSM(
             on_encounter=lambda name: events.append(("encounter", name)),
@@ -45,18 +45,13 @@ class TestFullPipeline:
             on_kill=lambda name: events.append(("kill", name)),
             on_abandon=lambda name: events.append(("abandon", name)),
             encounter_confirm_frames=3,
-            phase_transition_window=0.3,
         )
-        fsm.bar_gone_grace = 0.1  # speed up for test
         # Confirm encounter
         for _ in range(5):
             fsm.process_frame(boss_bar_detected=True, boss_name="Godrick le Greffé")
 
-        # Bar disappears, wait for grace + kill timeout
-        start = time.time()
-        while time.time() - start < 0.8:
-            fsm.process_frame(boss_bar_detected=False)
-            time.sleep(0.05)
+        # Kill text detected (OCR confirms boss killed)
+        fsm.process_frame(boss_bar_detected=False, kill_detected=True)
 
         assert ("kill", "Godrick le Greffé") in events
 
