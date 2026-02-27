@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **COMM-03**: Watcher sends boss_kill event to VPS via HTTP POST
 - [x] **COMM-04**: Watcher sends session_start and session_end events to VPS
 - [x] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
-- [ ] **COMM-06**: API authenticates events via per-player API key
+- [x] **COMM-06**: API authenticates events via per-player API key
 - [x] **COMM-07**: Watcher handles network disconnects gracefully (retry queue)
 
 ### Discord Notifications
@@ -39,13 +39,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Betting
 
-- [ ] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
-- [ ] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
+- [x] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
+- [x] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
 - [x] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
-- [ ] **BET-04**: Odds are locked at time of bet placement
-- [ ] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
-- [ ] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
-- [ ] **BET-07**: Golden Offer and first bettor bonus apply to Elden Ring bets
+- [x] **BET-04**: Odds are locked at time of bet placement
+- [x] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
+- [x] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
+- [x] **BET-07**: Golden Offer and first bettor bonus apply to Elden Ring bets
 
 ### Stats & Social
 
@@ -59,10 +59,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Integration
 
-- [ ] **INTG-01**: New eldenRingTracker.js module in delu-bot following existing tracker pattern
-- [ ] **INTG-02**: Elden Ring data stored in delu-bot's storage.js (same JSON persistence)
-- [ ] **INTG-03**: Feature flag for Elden Ring tracking (tracking_elden_ring, betting_elden_ring)
-- [ ] **INTG-04**: Does not break existing LoL/TFT functionality
+- [x] **INTG-01**: New eldenRingTracker.js module in delu-bot following existing tracker pattern
+- [x] **INTG-02**: Elden Ring data stored in delu-bot's storage.js (same JSON persistence)
+- [x] **INTG-03**: Feature flag for Elden Ring tracking (tracking_elden_ring, betting_elden_ring)
+- [x] **INTG-04**: Does not break existing LoL/TFT functionality
 - [x] **INTG-05**: Watcher installable as a standalone Python app on Windows (pip install or exe)
 
 ## v2 Requirements
@@ -117,20 +117,20 @@ Deferred to future release. Tracked but not in current roadmap.
 | COMM-03 | Phase 5 | Complete |
 | COMM-04 | Phase 5 | Complete |
 | COMM-05 | Phase 5 | Complete |
-| COMM-06 | Phase 6 | Pending |
+| COMM-06 | Phase 2 | Complete |
 | COMM-07 | Phase 1 | Complete |
 | NOTIF-01 | Phase 5 | Complete |
 | NOTIF-02 | Phase 5 | Complete |
 | NOTIF-03 | Phase 5 | Complete |
 | NOTIF-04 | Phase 5 | Complete |
 | NOTIF-05 | Phase 5 | Complete |
-| BET-01 | Phase 6 | Pending |
-| BET-02 | Phase 6 | Pending |
+| BET-01 | Phase 3 | Complete |
+| BET-02 | Phase 3 | Complete |
 | BET-03 | Phase 5 | Complete |
-| BET-04 | Phase 6 | Pending |
-| BET-05 | Phase 6 | Pending |
-| BET-06 | Phase 6 | Pending |
-| BET-07 | Phase 6 | Pending |
+| BET-04 | Phase 3 | Complete |
+| BET-05 | Phase 3 | Complete |
+| BET-06 | Phase 3 | Complete |
+| BET-07 | Phase 3 | Complete |
 | STAT-01 | Phase 5 | Complete |
 | STAT-02 | Phase 5 | Complete |
 | STAT-03 | Phase 5 | Complete |
@@ -138,10 +138,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | STAT-05 | Phase 5 | Complete |
 | STAT-06 | Phase 5 | Complete |
 | STAT-07 | Phase 5 | Complete |
-| INTG-01 | Phase 6 | Pending |
-| INTG-02 | Phase 6 | Pending |
-| INTG-03 | Phase 6 | Pending |
-| INTG-04 | Phase 6 | Pending |
+| INTG-01 | Phase 2 | Complete |
+| INTG-02 | Phase 2 | Complete |
+| INTG-03 | Phase 2 | Complete |
+| INTG-04 | Phase 2 | Complete |
 | INTG-05 | Phase 1 | Complete |
 
 **Coverage:**
@@ -151,4 +151,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-27 — Phase 5 requirements marked complete (18 IDs)*
+*Last updated: 2026-02-27 — Phase 6 verification sweep: all 40 requirements complete*
