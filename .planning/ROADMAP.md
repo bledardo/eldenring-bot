@@ -15,7 +15,7 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
 - [x] **Phase 3: Discord Notifications and Betting** - Rich embeds, betting buttons, bet resolution, session summary
 - [x] **Phase 4: Stats and Social** - Slash commands, per-player stats, leaderboard, boss difficulty comparison (completed 2026-02-27)
 - [ ] **Phase 5: Fix Watcher-API Contract Breaks** - Fix boss name key, event_id, session_id, duration, fight_abandoned, emitEvent forwarding
-- [ ] **Phase 6: Cross-Phase Verification Sweep** - Create missing VERIFICATION.md files, update traceability table
+- [x] **Phase 6: Cross-Phase Verification Sweep** - Create missing VERIFICATION.md files, update traceability table (completed 2026-02-27)
 
 ## Phase Details
 
@@ -128,4 +128,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Discord Notifications and Betting | 4/4 | Complete | 2026-02-27 |
 | 4. Stats and Social | 3/3 | Complete    | 2026-02-27 |
 | 5. Fix Watcher-API Contract Breaks | 0/0 | Not Started | — |
-| 6. Cross-Phase Verification Sweep | 1/2 | In Progress|  |
+| 6. Cross-Phase Verification Sweep | 2/2 | Complete   | 2026-02-27 |
