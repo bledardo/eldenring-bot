@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import time
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -123,19 +124,25 @@ class Watcher:
         self._current_boss_name: str | None = None
         self._coop_detected: bool = False
         self._last_flush_time: float = 0.0
+        self._session_id: str | None = None
+        self._fight_start_time: float | None = None
 
-    def start(self, game_pid: int) -> None:
+    def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
 
         Args:
             game_pid: PID of the game process.
+            session_id: Session UUID shared across all events in this session.
         """
         self._game_hwnd = _find_game_window(game_pid)
         self._running = True
+        self._session_id = session_id
 
         # Send session start event
         self._http_client.send_event({
             "type": "session_start",
+            "event_id": str(uuid.uuid4()),
+            "session_id": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
@@ -240,39 +247,54 @@ class Watcher:
             logger.info("Co-op detected — skipping encounter event for {}", boss_name)
             return
 
+        self._fight_start_time = time.time()
         logger.info("Boss encounter: {}", boss_name)
         self._http_client.send_event({
             "type": "boss_encounter",
-            "boss_name": boss_name,
+            "event_id": str(uuid.uuid4()),
+            "boss_canonical_name": boss_name,
+            "session_id": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
     def _on_death(self, boss_name: str) -> None:
         """FSM callback: player death."""
-        logger.info("Player death vs {}", boss_name)
+        duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
+        logger.info("Player death vs {} ({}s)", boss_name, duration)
         self._http_client.send_event({
             "type": "player_death",
-            "boss_name": boss_name,
+            "event_id": str(uuid.uuid4()),
+            "boss_canonical_name": boss_name,
+            "session_id": self._session_id,
+            "duration_seconds": duration,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         self._reset_fight_state()
 
     def _on_kill(self, boss_name: str) -> None:
         """FSM callback: boss killed."""
-        logger.info("Boss killed: {}", boss_name)
+        duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
+        logger.info("Boss killed: {} ({}s)", boss_name, duration)
         self._http_client.send_event({
             "type": "boss_kill",
-            "boss_name": boss_name,
+            "event_id": str(uuid.uuid4()),
+            "boss_canonical_name": boss_name,
+            "session_id": self._session_id,
+            "duration_seconds": duration,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         self._reset_fight_state()
 
     def _on_abandon(self, boss_name: str) -> None:
         """FSM callback: fight abandoned."""
-        logger.info("Fight abandoned: {}", boss_name)
+        duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
+        logger.info("Fight abandoned: {} ({}s)", boss_name, duration)
         self._http_client.send_event({
             "type": "fight_abandoned",
-            "boss_name": boss_name,
+            "event_id": str(uuid.uuid4()),
+            "boss_canonical_name": boss_name,
+            "session_id": self._session_id,
+            "duration_seconds": duration,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         self._reset_fight_state()
@@ -281,6 +303,7 @@ class Watcher:
         """Reset per-fight tracking state."""
         self._current_boss_name = None
         self._coop_detected = False
+        self._fight_start_time = None
 
     def _save_debug_screenshot(self, bar_detected: bool, death_detected: bool) -> None:
         """Save debug screenshots on detection triggers."""

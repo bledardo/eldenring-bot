@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import signal
 import threading
+import uuid
+from datetime import datetime, timezone
 
 from loguru import logger
 
@@ -36,6 +38,7 @@ def main() -> None:
     shutdown_requested = False
     watcher_instance: Watcher | None = None
     watcher_thread: threading.Thread | None = None
+    session_id: str | None = None
 
     def request_shutdown() -> None:
         nonlocal shutdown_requested
@@ -61,12 +64,13 @@ def main() -> None:
 
     # Callbacks for game lifecycle
     def on_launch(pid: int) -> None:
-        nonlocal watcher_thread
-        logger.info("Elden Ring detected (PID: {})", pid)
+        nonlocal watcher_thread, session_id
+        session_id = str(uuid.uuid4())
+        logger.info("Elden Ring detected (PID: {}, session: {})", pid, session_id)
         # Start watcher in background thread
         watcher_thread = threading.Thread(
             target=watcher_instance.start,
-            args=(pid,),
+            args=(pid, session_id),
             daemon=True,
         )
         watcher_thread.start()
@@ -79,9 +83,9 @@ def main() -> None:
         # Send session end event
         http_client.send_event({
             "type": "session_end",
-            "timestamp": __import__("datetime").datetime.now(
-                __import__("datetime").timezone.utc
-            ).isoformat(),
+            "event_id": str(uuid.uuid4()),
+            "session_id": session_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         tray.set_status(TrayStatus.NO_GAME)
         watcher_thread = None
