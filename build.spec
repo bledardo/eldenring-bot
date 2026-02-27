@@ -62,6 +62,17 @@ a = Analysis(
         "matplotlib",
         "scipy.spatial.cython_blas",
         "scipy.spatial.cython_lapack",
+        # Exclude CUDA/GPU libs (CPU-only inference, saves ~2GB)
+        "torch.cuda",
+        "torch.distributed",
+        "torch.testing",
+        "torch.utils.tensorboard",
+        "torch.utils.bottleneck",
+        "torch.onnx",
+        "torch.optim",
+        "torch.autograd.profiler",
+        "caffe2",
+        "triton",
     ],
     noarchive=False,
 )
