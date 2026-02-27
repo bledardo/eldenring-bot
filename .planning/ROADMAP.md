@@ -14,6 +14,8 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
 - [x] **Phase 2: Event Pipeline** - HTTP API on VPS, delu-bot module scaffold, authentication, and storage
 - [x] **Phase 3: Discord Notifications and Betting** - Rich embeds, betting buttons, bet resolution, session summary
 - [x] **Phase 4: Stats and Social** - Slash commands, per-player stats, leaderboard, boss difficulty comparison (completed 2026-02-27)
+- [ ] **Phase 5: Fix Watcher-API Contract Breaks** - Fix boss name key, event_id, session_id, duration, fight_abandoned, emitEvent forwarding
+- [ ] **Phase 6: Cross-Phase Verification Sweep** - Create missing VERIFICATION.md files, update traceability table
 
 ## Phase Details
 
@@ -81,10 +83,36 @@ Plans:
   4. Boss difficulty comparison is visible — which boss has the highest attempt count across all server players
 **Plans**: TBD
 
+### Phase 5: Fix Watcher-API Contract Breaks
+**Goal**: All 6 integration breaks between Watcher and API server are fixed — boss names resolve correctly, events are deduplicated, sessions are tracked, fight durations are recorded, and all event types are handled
+**Depends on**: Phase 4
+**Requirements**: COMM-01, COMM-02, COMM-03, COMM-04, COMM-05, NOTIF-01, NOTIF-02, NOTIF-03, NOTIF-04, NOTIF-05, BET-03, STAT-01, STAT-02, STAT-03, STAT-04, STAT-05, STAT-06, STAT-07
+**Gap Closure:** Closes BREAK 1-6 from v1.0 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. Watcher sends `boss_canonical_name` and API resolves correct boss name (not "Unknown Boss")
+  2. Every event includes a unique `event_id` — duplicate events are rejected by the API
+  3. Session start generates a `session_id` UUID passed to all subsequent events
+  4. Death and kill events include accurate `duration_seconds` from fight start
+  5. `fight_abandoned` events are accepted by the API (no 400 error)
+  6. Kill embeds display correct fight duration (durationSeconds forwarded in emitEvent)
+**Plans**: TBD
+
+### Phase 6: Cross-Phase Verification Sweep
+**Goal**: All requirements from Phases 2-4 are verified end-to-end with VERIFICATION.md files, and REQUIREMENTS.md traceability is fully up to date
+**Depends on**: Phase 5
+**Requirements**: COMM-06, INTG-01, INTG-02, INTG-03, INTG-04, BET-01, BET-02, BET-04, BET-05, BET-06, BET-07
+**Gap Closure:** Closes verification gaps from v1.0 milestone audit
+**Success Criteria** (what must be TRUE):
+  1. 02-VERIFICATION.md exists and confirms Phase 2 requirements pass
+  2. 03-VERIFICATION.md exists and confirms Phase 3 requirements pass
+  3. REQUIREMENTS.md traceability table shows correct status for all 40 requirements
+  4. All SUMMARY.md frontmatter includes requirements_completed arrays
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -92,3 +120,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Event Pipeline | 5/5 | Complete | 2026-02-27 |
 | 3. Discord Notifications and Betting | 4/4 | Complete | 2026-02-27 |
 | 4. Stats and Social | 3/3 | Complete    | 2026-02-27 |
+| 5. Fix Watcher-API Contract Breaks | 0/0 | Not Started | — |
+| 6. Cross-Phase Verification Sweep | 0/0 | Not Started | — |
