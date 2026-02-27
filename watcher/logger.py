@@ -18,13 +18,14 @@ def setup_logging(config: Config) -> None:
     # Remove default handler
     logger.remove()
 
-    # Console output (colorized)
-    logger.add(
-        sys.stderr,
-        level=config.log_level,
-        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
-        colorize=True,
-    )
+    # Console output (colorized) — skip when no console (PyInstaller --windowed)
+    if sys.stderr is not None:
+        logger.add(
+            sys.stderr,
+            level=config.log_level,
+            format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan> - <level>{message}</level>",
+            colorize=True,
+        )
 
     # File output with rotation and retention
     log_dir = config.data_dir / "logs"

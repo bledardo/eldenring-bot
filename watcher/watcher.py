@@ -227,6 +227,15 @@ class Watcher:
                         self._boss_name.last_raw_ocr,
                         self._boss_name.last_match_score,
                     )
+                    # Save debug frames for diagnosis
+                    if self._config.debug_screenshots:
+                        dbg_dir = self._config.data_dir / "screenshots"
+                        dbg_dir.mkdir(parents=True, exist_ok=True)
+                        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                        if boss_name_frame is not None:
+                            cv2.imwrite(str(dbg_dir / f"{ts}_name_region.png"), boss_name_frame)
+                        if boss_bar_frame is not None:
+                            cv2.imwrite(str(dbg_dir / f"{ts}_bar_region.png"), boss_bar_frame)
 
             # Feed FSM
             self._fsm.process_frame(
