@@ -95,7 +95,11 @@ Plans:
   4. Death and kill events include accurate `duration_seconds` from fight start
   5. `fight_abandoned` events are accepted by the API (no 400 error)
   6. Kill embeds display correct fight duration (durationSeconds forwarded in emitEvent)
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 05-01-PLAN.md — Fix Watcher event payloads (boss_canonical_name, event_id, session_id, duration_seconds)
+- [ ] 05-02-PLAN.md — Fix API server (fight_abandoned handler, durationSeconds forwarding)
+- [ ] 05-03-PLAN.md — End-to-end verification and REQUIREMENTS.md update
 
 ### Phase 6: Cross-Phase Verification Sweep
 **Goal**: All requirements from Phases 2-4 are verified end-to-end with VERIFICATION.md files, and REQUIREMENTS.md traceability is fully up to date
