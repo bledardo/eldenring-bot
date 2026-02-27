@@ -43,7 +43,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
 - [x] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
 - [x] **BET-04**: Odds are locked at time of bet placement
-- [ ] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
+- [x] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
 - [x] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
 - [x] **BET-07**: Golden Offer and first bettor bonus apply to Elden Ring bets
 
@@ -128,7 +128,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | BET-02 | Phase 3 | Complete |
 | BET-03 | Phase 3 | Complete |
 | BET-04 | Phase 3 | Complete |
-| BET-05 | Phase 3 | Pending |
+| BET-05 | Phase 3 | Complete |
 | BET-06 | Phase 3 | Complete |
 | BET-07 | Phase 3 | Complete |
 | STAT-01 | Phase 4 | Pending |

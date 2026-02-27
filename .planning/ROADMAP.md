@@ -90,5 +90,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Watcher Core | 7/7 | Complete | 2026-02-26 |
 | 2. Event Pipeline | 5/5 | Complete | 2026-02-27 |
-| 3. Discord Notifications and Betting | 2/4 | In Progress | - |
+| 3. Discord Notifications and Betting | 3/4 | In Progress | - |
 | 4. Stats and Social | 0/TBD | Not started | - |
