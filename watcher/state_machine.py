@@ -59,12 +59,14 @@ class BossFightFSM:
         self.encounter_confirm_frames = encounter_confirm_frames
         self.phase_transition_window = phase_transition_window
         self.cooldown_duration = cooldown_duration
+        self.bar_gone_grace: float = 1.5  # seconds to wait before resolving (death detector needs time)
 
         # Internal tracking
         self._confirm_count: int = 0
         self._current_boss: str | None = None
         self._resolution_start: float | None = None
         self._cooldown_start: float | None = None
+        self._bar_gone_start: float | None = None
 
         # State (managed manually for simplicity — transitions lib used for logging)
         self.state = FightState.IDLE
@@ -74,6 +76,7 @@ class BossFightFSM:
         boss_bar_detected: bool,
         boss_name: str | None = None,
         death_detected: bool = False,
+        kill_detected: bool = False,
         timestamp: float | None = None,
     ) -> None:
         """Process a single frame of detection data.
@@ -85,6 +88,7 @@ class BossFightFSM:
             boss_bar_detected: Whether the boss health bar is visible.
             boss_name: Detected boss name (only needed on first detection).
             death_detected: Whether the "YOU DIED" screen is detected.
+            kill_detected: Whether the gold "ENEMY FELLED" text is detected.
             timestamp: Frame timestamp; uses time.time() if not provided.
         """
         now = timestamp if timestamp is not None else time.time()
@@ -96,10 +100,10 @@ class BossFightFSM:
             self._handle_encounter_pending(boss_bar_detected, boss_name)
 
         elif self.state == FightState.ACTIVE_FIGHT:
-            self._handle_active_fight(boss_bar_detected, death_detected, now)
+            self._handle_active_fight(boss_bar_detected, death_detected, kill_detected, now)
 
         elif self.state == FightState.FIGHT_RESOLVING:
-            self._handle_fight_resolving(boss_bar_detected, death_detected, now)
+            self._handle_fight_resolving(boss_bar_detected, death_detected, kill_detected, now)
 
         elif self.state == FightState.COOLDOWN:
             self._handle_cooldown(now)
@@ -132,26 +136,44 @@ class BossFightFSM:
             self._transition_to(FightState.IDLE)
 
     def _handle_active_fight(
-        self, boss_bar_detected: bool, death_detected: bool, now: float
+        self, boss_bar_detected: bool, death_detected: bool, kill_detected: bool, now: float
     ) -> None:
         """ACTIVE_FIGHT: boss bar is present, fight is ongoing."""
         if death_detected:
-            # Death during active fight
+            # Death takes priority
             boss = self._current_boss or "Unknown Boss"
             logger.info("Player death detected during fight with {}", boss)
             self._on_death(boss)
             self._cooldown_start = now
+            self._bar_gone_start = None
+            self._transition_to(FightState.COOLDOWN)
+
+        elif kill_detected:
+            # Gold text = immediate kill confirmation
+            boss = self._current_boss or "Unknown Boss"
+            logger.info("Kill confirmed (gold text) for {}", boss)
+            self._on_kill(boss)
+            self._cooldown_start = now
+            self._bar_gone_start = None
             self._transition_to(FightState.COOLDOWN)
 
         elif not boss_bar_detected:
-            # Bar disappeared — start resolution timer
-            self._resolution_start = now
-            self._transition_to(FightState.FIGHT_RESOLVING)
+            # Bar disappeared — wait a grace period before entering resolving
+            # to give the death detector time to confirm (needs 2 consecutive frames).
+            # This prevents "boss killed" false positives when the player dies.
+            if self._bar_gone_start is None:
+                self._bar_gone_start = now
+            elif now - self._bar_gone_start > self.bar_gone_grace:
+                self._resolution_start = now
+                self._bar_gone_start = None
+                self._transition_to(FightState.FIGHT_RESOLVING)
 
-        # else: bar still present — self-loop, no action
+        else:
+            # Bar still present — reset grace timer
+            self._bar_gone_start = None
 
     def _handle_fight_resolving(
-        self, boss_bar_detected: bool, death_detected: bool, now: float
+        self, boss_bar_detected: bool, death_detected: bool, kill_detected: bool, now: float
     ) -> None:
         """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome."""
         if death_detected:
@@ -160,6 +182,16 @@ class BossFightFSM:
             logger.info("Player death detected (resolving) against {}", boss)
             self._on_death(boss)
             self._cooldown_start = now
+            self._transition_to(FightState.COOLDOWN)
+            return
+
+        if kill_detected:
+            # Gold text = immediate kill confirmation
+            boss = self._current_boss or "Unknown Boss"
+            logger.info("Kill confirmed (gold text, resolving) for {}", boss)
+            self._on_kill(boss)
+            self._cooldown_start = now
+            self._resolution_start = None
             self._transition_to(FightState.COOLDOWN)
             return
 
