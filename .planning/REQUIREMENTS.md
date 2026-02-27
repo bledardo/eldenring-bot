@@ -31,15 +31,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Discord Notifications
 
-- [ ] **NOTIF-01**: Bot sends rich embed on boss encounter (boss name, attempt #, player name)
-- [ ] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
-- [ ] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
+- [x] **NOTIF-01**: Bot sends rich embed on boss encounter (boss name, attempt #, player name)
+- [x] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
+- [x] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
 - [x] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
 - [ ] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
 
 ### Betting
 
-- [ ] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
+- [x] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
 - [x] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
 - [x] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
 - [x] **BET-04**: Odds are locked at time of bet placement
@@ -119,12 +119,12 @@ Deferred to future release. Tracked but not in current roadmap.
 | COMM-05 | Phase 2 | Pending |
 | COMM-06 | Phase 2 | Pending |
 | COMM-07 | Phase 1 | Complete |
-| NOTIF-01 | Phase 3 | Pending |
-| NOTIF-02 | Phase 3 | Pending |
-| NOTIF-03 | Phase 3 | Pending |
+| NOTIF-01 | Phase 3 | Complete |
+| NOTIF-02 | Phase 3 | Complete |
+| NOTIF-03 | Phase 3 | Complete |
 | NOTIF-04 | Phase 3 | Complete |
 | NOTIF-05 | Phase 3 | Pending |
-| BET-01 | Phase 3 | Pending |
+| BET-01 | Phase 3 | Complete |
 | BET-02 | Phase 3 | Complete |
 | BET-03 | Phase 3 | Complete |
 | BET-04 | Phase 3 | Complete |
