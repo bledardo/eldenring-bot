@@ -40,6 +40,7 @@ from watcher.detectors.health_bar import HealthBarDetector  # noqa: E402
 from watcher.detectors.you_died import YouDiedDetector  # noqa: E402
 from watcher.detectors.boss_name import BossNameDetector  # noqa: E402
 from watcher.detectors.coop import CoopDetector  # noqa: E402
+from watcher.detectors.enemy_felled import EnemyFelledDetector  # noqa: E402
 
 __all__ = [
     "ConsecutiveConfirmer",
@@ -47,4 +48,5 @@ __all__ = [
     "YouDiedDetector",
     "BossNameDetector",
     "CoopDetector",
+    "EnemyFelledDetector",
 ]
