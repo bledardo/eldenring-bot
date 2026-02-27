@@ -353,8 +353,7 @@ class Watcher:
             "duration_seconds": duration,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        if self._kill_screenshot:
-            event["screenshot_base64"] = self._kill_screenshot
+        # Note: screenshot kept locally only (too large for API payload)
         self._http_client.send_event(event)
         self._reset_fight_state()
 

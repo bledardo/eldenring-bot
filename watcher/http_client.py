@@ -90,6 +90,10 @@ class WatcherHttpClient:
                 return True
             else:
                 logger.warning("Event POST failed ({}): {}", response.status_code, response.text[:200])
+                # 4xx = client error (permanent), drop the event to avoid infinite retry
+                if 400 <= response.status_code < 500:
+                    self._queue.dequeue(path)
+                    logger.warning("Event dropped ({}): permanent client error", response.status_code)
                 self._last_success = False
                 return False
 
@@ -135,8 +139,13 @@ class WatcherHttpClient:
                     self._last_success = True
                 else:
                     logger.warning("Queue flush failed at event {} ({})", path.name, response.status_code)
+                    # 4xx = permanent client error, drop and continue
+                    if 400 <= response.status_code < 500:
+                        self._queue.dequeue(path)
+                        logger.warning("Event {} dropped ({}): permanent client error", path.name, response.status_code)
+                        continue
                     self._last_success = False
-                    break  # Stop on first failure
+                    break  # Stop on first server failure
 
             except requests.RequestException as exc:
                 logger.warning("Queue flush failed: {}", exc)
