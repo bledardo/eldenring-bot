@@ -34,18 +34,18 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **NOTIF-01**: Bot sends rich embed on boss encounter (boss name, attempt #, player name)
 - [ ] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
 - [ ] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
-- [ ] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
+- [x] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
 - [ ] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
 
 ### Betting
 
 - [ ] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
-- [ ] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
-- [ ] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
-- [ ] **BET-04**: Odds are locked at time of bet placement
+- [x] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
+- [x] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
+- [x] **BET-04**: Odds are locked at time of bet placement
 - [ ] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
-- [ ] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
-- [ ] **BET-07**: Golden Offer and first bettor bonus apply to Elden Ring bets
+- [x] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
+- [x] **BET-07**: Golden Offer and first bettor bonus apply to Elden Ring bets
 
 ### Stats & Social
 
@@ -122,15 +122,15 @@ Deferred to future release. Tracked but not in current roadmap.
 | NOTIF-01 | Phase 3 | Pending |
 | NOTIF-02 | Phase 3 | Pending |
 | NOTIF-03 | Phase 3 | Pending |
-| NOTIF-04 | Phase 3 | Pending |
+| NOTIF-04 | Phase 3 | Complete |
 | NOTIF-05 | Phase 3 | Pending |
 | BET-01 | Phase 3 | Pending |
-| BET-02 | Phase 3 | Pending |
-| BET-03 | Phase 3 | Pending |
-| BET-04 | Phase 3 | Pending |
+| BET-02 | Phase 3 | Complete |
+| BET-03 | Phase 3 | Complete |
+| BET-04 | Phase 3 | Complete |
 | BET-05 | Phase 3 | Pending |
-| BET-06 | Phase 3 | Pending |
-| BET-07 | Phase 3 | Pending |
+| BET-06 | Phase 3 | Complete |
+| BET-07 | Phase 3 | Complete |
 | STAT-01 | Phase 4 | Pending |
 | STAT-02 | Phase 4 | Pending |
 | STAT-03 | Phase 4 | Pending |
