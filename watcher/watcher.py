@@ -6,6 +6,7 @@ game is active and pauses when the game is not in focus.
 
 from __future__ import annotations
 
+import base64
 import time
 import threading
 import uuid
@@ -22,6 +23,7 @@ from watcher.paths import asset_path
 from watcher.detectors.health_bar import HealthBarDetector
 from watcher.detectors.you_died import YouDiedDetector
 from watcher.detectors.boss_name import BossNameDetector
+from watcher.detectors.enemy_felled import EnemyFelledDetector
 from watcher.detectors.coop import CoopDetector
 from watcher.http_client import WatcherHttpClient
 from watcher.state_machine import BossFightFSM, FightState
@@ -110,6 +112,7 @@ class Watcher:
         template_dir = asset_path("watcher/assets/templates")
         self._health_bar = HealthBarDetector(template_dir)
         self._you_died = YouDiedDetector(template_dir)
+        self._enemy_felled = EnemyFelledDetector()
         self._boss_name = BossNameDetector(asset_path("watcher/assets/boss_names.json"))
         self._coop = CoopDetector(template_dir)
 
@@ -128,6 +131,7 @@ class Watcher:
         self._session_id: str | None = None
         self._fight_start_time: float | None = None
         self._last_global_death_time: float = 0.0
+        self._kill_screenshot: str | None = None  # base64-encoded PNG
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
@@ -167,15 +171,24 @@ class Watcher:
         while self._running:
             frame_start = time.perf_counter()
 
-            # Check game focus (log only, never pause detection)
+            # Check game focus — skip detection when unfocused to avoid
+            # false positives from stale/transitional frames (e.g. alt-tab).
             focused = _is_game_focused(self._game_hwnd)
             if not focused and not self._was_paused:
-                logger.info("Game lost focus (detection continues)")
+                logger.info("Game lost focus — pausing detection")
                 self._was_paused = True
+                self._you_died._confirmer.reset()
+                self._health_bar._confirmer.reset()
+                self._enemy_felled._confirmer.reset()
             elif focused and self._was_paused:
                 logger.info("Game regained focus")
                 self._was_paused = False
                 self._tray.set_status(TrayStatus.WATCHING)
+
+            if self._was_paused:
+                # Sleep briefly and skip detection while game is unfocused
+                time.sleep(frame_interval)
+                continue
 
             # Capture boss bar region (always needed)
             boss_bar_frame = self._capture.capture_region(BOSS_BAR_REGION)
@@ -197,6 +210,20 @@ class Watcher:
             ):
                 self._on_global_death()
 
+            # Run kill confirmation detector (same region as death)
+            kill_detected = False
+            if you_died_frame is not None and self._fsm.state in (
+                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
+            ):
+                kill_detected = self._enemy_felled.detect(you_died_frame)
+                if kill_detected:
+                    # Capture full screen for the kill notification
+                    kill_frame = self._capture.capture_full()
+                    if kill_frame is not None:
+                        _, png_buf = cv2.imencode(".png", kill_frame)
+                        self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
+                        logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
+
             # Check co-op only when encounter first confirmed
             if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
                 coop_frame = self._capture.capture_region(COOP_REGION)
@@ -210,10 +237,15 @@ class Watcher:
                 and self._fsm.state == FightState.ENCOUNTER_PENDING
                 and self._current_boss_name is None
             ):
-                # Try dedicated name region first, fall back to full bar region
-                boss_name_frame = self._capture.capture_region(BOSS_NAME_REGION)
+                # Crop name area from the bar frame (top portion, above health bar)
+                # BOSS_BAR_REGION now starts at y=0.77, name text is at ~0.775-0.815
+                # which is roughly the top 40% of the combined region
                 detected_name = None
-                if boss_name_frame is not None:
+                boss_name_frame = None
+                if boss_bar_frame is not None:
+                    bar_h = boss_bar_frame.shape[0]
+                    name_bottom = int(bar_h * 0.45)  # top 45% = name area
+                    boss_name_frame = boss_bar_frame[:name_bottom, :]
                     detected_name = self._boss_name.detect(boss_name_frame)
                 if detected_name is None and boss_bar_frame is not None:
                     detected_name = self._boss_name.detect(boss_bar_frame)
@@ -221,6 +253,9 @@ class Watcher:
                     self._current_boss_name = detected_name
                     boss_name = detected_name
                     logger.info("Boss identified: {}", detected_name)
+                    # Save encounter screenshot
+                    if self._config.debug_screenshots:
+                        self._save_debug_screenshot(bar_detected, False)
                 else:
                     logger.warning(
                         "OCR failed (raw='{}', score={})",
@@ -236,12 +271,24 @@ class Watcher:
                             cv2.imwrite(str(dbg_dir / f"{ts}_name_region.png"), boss_name_frame)
                         if boss_bar_frame is not None:
                             cv2.imwrite(str(dbg_dir / f"{ts}_bar_region.png"), boss_bar_frame)
+                        # Save actual OCR input frame and preprocessed images
+                        if hasattr(self._boss_name, "_last_input_frame"):
+                            cv2.imwrite(
+                                str(dbg_dir / f"{ts}_ocr_input.png"),
+                                self._boss_name._last_input_frame,
+                            )
+                        if hasattr(self._boss_name, "_last_debug_frames"):
+                            for label, img in self._boss_name._last_debug_frames.items():
+                                cv2.imwrite(
+                                    str(dbg_dir / f"{ts}_preproc_{label}.png"), img,
+                                )
 
             # Feed FSM
             self._fsm.process_frame(
                 boss_bar_detected=bar_detected,
                 boss_name=boss_name,
                 death_detected=death_detected,
+                kill_detected=kill_detected,
             )
 
             # Debug screenshots on detection triggers
@@ -299,14 +346,17 @@ class Watcher:
         """FSM callback: boss killed."""
         duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
         logger.info("Boss killed: {} ({}s)", boss_name, duration)
-        self._http_client.send_event({
+        event = {
             "type": "boss_kill",
             "event_id": str(uuid.uuid4()),
             "boss_canonical_name": boss_name,
             "session_id": self._session_id,
             "duration_seconds": duration,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        }
+        if self._kill_screenshot:
+            event["screenshot_base64"] = self._kill_screenshot
+        self._http_client.send_event(event)
         self._reset_fight_state()
 
     def _on_abandon(self, boss_name: str) -> None:
@@ -347,6 +397,7 @@ class Watcher:
         self._current_boss_name = None
         self._coop_detected = False
         self._fight_start_time = None
+        self._kill_screenshot = None
 
     def _save_debug_screenshot(self, bar_detected: bool, death_detected: bool) -> None:
         """Save debug screenshots on detection triggers."""
