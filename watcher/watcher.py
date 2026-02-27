@@ -224,10 +224,11 @@ class Watcher:
                     self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
                     logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
 
-            # Check co-op only when encounter first confirmed
-            if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
-                coop_frame = self._capture.crop_region(full_frame, COOP_REGION)
-                self._coop_detected = self._coop.detect(coop_frame)
+            # Co-op detection disabled — structural fallback has too many false positives
+            # TODO: re-enable when a proper coop_template is available
+            # if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
+            #     coop_frame = self._capture.crop_region(full_frame, COOP_REGION)
+            #     self._coop_detected = self._coop.detect(coop_frame)
 
             # Run OCR once per encounter (when health bar first confirmed)
             boss_name = self._current_boss_name
