@@ -24,8 +24,29 @@ Copy-Item "\\wsl.localhost\Debian\home\hamza\eldenring-bot\build.spec" $localPro
 Copy-Item "\\wsl.localhost\Debian\home\hamza\eldenring-bot\build.py" $localProject -Force -ErrorAction SilentlyContinue
 Write-Host "Sync done" -ForegroundColor Green
 
-# Install dependencies
+# Check/install Tesseract OCR
 Push-Location $localProject
+$tesseractPath = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+if (-not (Test-Path $tesseractPath)) {
+    Write-Host "Installing Tesseract OCR..." -ForegroundColor Yellow
+    $installerUrl = "https://digi.bib.uni-mannheim.de/tesseract/tesseract-ocr-w64-setup-5.5.0.20241111.exe"
+    $installerPath = "$env:TEMP\tesseract-installer.exe"
+    Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath
+    # Silent install with French language data
+    Start-Process -Wait -FilePath $installerPath -ArgumentList "/S", "/D=C:\Program Files\Tesseract-OCR"
+    Remove-Item $installerPath -ErrorAction SilentlyContinue
+    # Download French language data if not included
+    $tessdata = "C:\Program Files\Tesseract-OCR\tessdata"
+    if (-not (Test-Path "$tessdata\fra.traineddata")) {
+        Write-Host "Downloading French language data..." -ForegroundColor Yellow
+        Invoke-WebRequest -Uri "https://github.com/tesseract-ocr/tessdata/raw/main/fra.traineddata" -OutFile "$tessdata\fra.traineddata"
+    }
+    Write-Host "Tesseract installed" -ForegroundColor Green
+} else {
+    Write-Host "Tesseract OK" -ForegroundColor Green
+}
+
+# Install Python dependencies
 Write-Host "Installing dependencies..." -ForegroundColor Yellow
 pip install -r "\\wsl.localhost\Debian\home\hamza\eldenring-bot\requirements.txt" --quiet
 
