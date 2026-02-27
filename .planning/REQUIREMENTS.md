@@ -21,27 +21,27 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Communication
 
-- [ ] **COMM-01**: Watcher sends boss_encounter event to VPS via HTTP POST
-- [ ] **COMM-02**: Watcher sends player_death event to VPS via HTTP POST
-- [ ] **COMM-03**: Watcher sends boss_kill event to VPS via HTTP POST
-- [ ] **COMM-04**: Watcher sends session_start and session_end events to VPS
-- [ ] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
+- [x] **COMM-01**: Watcher sends boss_encounter event to VPS via HTTP POST
+- [x] **COMM-02**: Watcher sends player_death event to VPS via HTTP POST
+- [x] **COMM-03**: Watcher sends boss_kill event to VPS via HTTP POST
+- [x] **COMM-04**: Watcher sends session_start and session_end events to VPS
+- [x] **COMM-05**: VPS exposes HTTP API endpoint to receive Watcher events
 - [ ] **COMM-06**: API authenticates events via per-player API key
 - [x] **COMM-07**: Watcher handles network disconnects gracefully (retry queue)
 
 ### Discord Notifications
 
-- [ ] **NOTIF-01**: Bot sends rich embed on boss encounter (boss name, attempt #, player name)
-- [ ] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
-- [ ] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
-- [ ] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
-- [ ] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
+- [x] **NOTIF-01**: Bot sends rich embed on boss encounter (boss name, attempt #, player name)
+- [x] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
+- [x] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
+- [x] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
+- [x] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
 
 ### Betting
 
 - [ ] **BET-01**: Bot displays Parier Victoire / Parier Défaite buttons on boss encounter notification
 - [ ] **BET-02**: Betting uses delu-bot's existing odds calculation system (seed pool, minority bonus, margin)
-- [ ] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
+- [x] **BET-03**: Odds are based on player's historical defeat rate for that specific boss
 - [ ] **BET-04**: Odds are locked at time of bet placement
 - [ ] **BET-05**: Bets resolve automatically on player death (losers: bet victoire) or boss kill (losers: bet défaite)
 - [ ] **BET-06**: Winnings/losses applied to existing delu-bot wallet system (shared currency)
@@ -49,13 +49,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Stats & Social
 
-- [ ] **STAT-01**: Bot tracks attempt count per boss per player (persistent)
-- [ ] **STAT-02**: Bot tracks time spent per boss fight
-- [ ] **STAT-03**: Bot tracks total kills and deaths per player
-- [ ] **STAT-04**: /er-stats slash command shows player's Elden Ring stats
-- [ ] **STAT-05**: /er-bosses slash command lists all bosses encountered with attempt counts
-- [ ] **STAT-06**: /er-leaderboard slash command shows server-wide rankings
-- [ ] **STAT-07**: Server-wide boss difficulty comparison (which boss gave everyone the most trouble)
+- [x] **STAT-01**: Bot tracks attempt count per boss per player (persistent)
+- [x] **STAT-02**: Bot tracks time spent per boss fight
+- [x] **STAT-03**: Bot tracks total kills and deaths per player
+- [x] **STAT-04**: /er-stats slash command shows player's Elden Ring stats
+- [x] **STAT-05**: /er-bosses slash command lists all bosses encountered with attempt counts
+- [x] **STAT-06**: /er-leaderboard slash command shows server-wide rankings
+- [x] **STAT-07**: Server-wide boss difficulty comparison (which boss gave everyone the most trouble)
 
 ### Integration
 
@@ -112,32 +112,32 @@ Deferred to future release. Tracked but not in current roadmap.
 | DETECT-07 | Phase 1 | Complete |
 | DETECT-08 | Phase 1 | Complete |
 | DETECT-09 | Phase 1 | Complete |
-| COMM-01 | Phase 5 | Pending |
-| COMM-02 | Phase 5 | Pending |
-| COMM-03 | Phase 5 | Pending |
-| COMM-04 | Phase 5 | Pending |
-| COMM-05 | Phase 5 | Pending |
+| COMM-01 | Phase 5 | Complete |
+| COMM-02 | Phase 5 | Complete |
+| COMM-03 | Phase 5 | Complete |
+| COMM-04 | Phase 5 | Complete |
+| COMM-05 | Phase 5 | Complete |
 | COMM-06 | Phase 6 | Pending |
 | COMM-07 | Phase 1 | Complete |
-| NOTIF-01 | Phase 5 | Pending |
-| NOTIF-02 | Phase 5 | Pending |
-| NOTIF-03 | Phase 5 | Pending |
-| NOTIF-04 | Phase 5 | Pending |
-| NOTIF-05 | Phase 5 | Pending |
+| NOTIF-01 | Phase 5 | Complete |
+| NOTIF-02 | Phase 5 | Complete |
+| NOTIF-03 | Phase 5 | Complete |
+| NOTIF-04 | Phase 5 | Complete |
+| NOTIF-05 | Phase 5 | Complete |
 | BET-01 | Phase 6 | Pending |
 | BET-02 | Phase 6 | Pending |
-| BET-03 | Phase 5 | Pending |
+| BET-03 | Phase 5 | Complete |
 | BET-04 | Phase 6 | Pending |
 | BET-05 | Phase 6 | Pending |
 | BET-06 | Phase 6 | Pending |
 | BET-07 | Phase 6 | Pending |
-| STAT-01 | Phase 5 | Pending |
-| STAT-02 | Phase 5 | Pending |
-| STAT-03 | Phase 5 | Pending |
-| STAT-04 | Phase 5 | Pending |
-| STAT-05 | Phase 5 | Pending |
-| STAT-06 | Phase 5 | Pending |
-| STAT-07 | Phase 5 | Pending |
+| STAT-01 | Phase 5 | Complete |
+| STAT-02 | Phase 5 | Complete |
+| STAT-03 | Phase 5 | Complete |
+| STAT-04 | Phase 5 | Complete |
+| STAT-05 | Phase 5 | Complete |
+| STAT-06 | Phase 5 | Complete |
+| STAT-07 | Phase 5 | Complete |
 | INTG-01 | Phase 6 | Pending |
 | INTG-02 | Phase 6 | Pending |
 | INTG-03 | Phase 6 | Pending |
@@ -151,4 +151,4 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ---
 *Requirements defined: 2026-02-26*
-*Last updated: 2026-02-27 — traceability updated for gap closure phases 5-6*
+*Last updated: 2026-02-27 — Phase 5 requirements marked complete (18 IDs)*
