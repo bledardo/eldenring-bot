@@ -35,7 +35,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **NOTIF-02**: Bot sends rich embed on boss kill (victory, time spent, attempts)
 - [x] **NOTIF-03**: Bot sends rich embed on player death (attempt count increment)
 - [x] **NOTIF-04**: Embeds include boss artwork/thumbnail from asset library
-- [ ] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
+- [x] **NOTIF-05**: Bot sends session summary embed when game closes (bosses fought, total attempts, kills, session time)
 
 ### Betting
 
@@ -123,7 +123,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | NOTIF-02 | Phase 3 | Complete |
 | NOTIF-03 | Phase 3 | Complete |
 | NOTIF-04 | Phase 3 | Complete |
-| NOTIF-05 | Phase 3 | Pending |
+| NOTIF-05 | Phase 3 | Complete |
 | BET-01 | Phase 3 | Complete |
 | BET-02 | Phase 3 | Complete |
 | BET-03 | Phase 3 | Complete |
