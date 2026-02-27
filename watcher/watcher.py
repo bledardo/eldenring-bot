@@ -209,7 +209,7 @@ class Watcher:
 
             # Global death: YOU DIED detected outside a boss fight
             if death_detected and self._fsm.state not in (
-                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
+                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING, FightState.COOLDOWN,
             ):
                 self._on_global_death()
 
