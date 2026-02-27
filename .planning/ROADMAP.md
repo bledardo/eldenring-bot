@@ -111,7 +111,10 @@ Plans:
   2. 03-VERIFICATION.md exists and confirms Phase 3 requirements pass
   3. REQUIREMENTS.md traceability table shows correct status for all 40 requirements
   4. All SUMMARY.md frontmatter includes requirements_completed arrays
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 06-01-PLAN.md — Write 02-VERIFICATION.md and 03-VERIFICATION.md with evidence-based requirement verification
+- [ ] 06-02-PLAN.md — Update REQUIREMENTS.md traceability table and fix Phase 4 SUMMARY.md frontmatter
 
 ## Progress
 
