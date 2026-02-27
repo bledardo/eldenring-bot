@@ -63,7 +63,12 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
   3. Odds reflect the player's historical defeat rate for that specific boss, are locked at bet time, and winnings apply to delu-bot wallets
   4. Golden Offer and first-bettor bonuses apply to Elden Ring bets (reused from existing system)
   5. When the game closes, a session summary embed posts showing bosses fought, total attempts, kills, and session duration
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 03-01-PLAN.md — ER betting storage functions, odds calculation, boss artwork asset map
+- [ ] 03-02-PLAN.md — eldenRingNotifier module: encounter/death/kill embeds with betting buttons
+- [ ] 03-03-PLAN.md — Bot.js button handler for ER bet placement and live embed updates
+- [ ] 03-04-PLAN.md — Bet resolution on death/kill, session summary, orphaned bet cleanup
 
 ### Phase 4: Stats and Social
 **Goal**: Players can query their own stats and see how they compare to the rest of the server — boss difficulty emerges from collective data
@@ -85,5 +90,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Watcher Core | 7/7 | Complete | 2026-02-26 |
 | 2. Event Pipeline | 5/5 | Complete | 2026-02-27 |
-| 3. Discord Notifications and Betting | 0/TBD | Not started | - |
+| 3. Discord Notifications and Betting | 0/4 | Not started | - |
 | 4. Stats and Social | 0/TBD | Not started | - |
