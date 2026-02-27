@@ -13,7 +13,7 @@ Four phases deliver a working system from nothing to a full Discord-integrated b
 - [ ] **Phase 1: Watcher Core** - Screen capture, boss detection, state machine, and packaged Watcher app
 - [x] **Phase 2: Event Pipeline** - HTTP API on VPS, delu-bot module scaffold, authentication, and storage
 - [x] **Phase 3: Discord Notifications and Betting** - Rich embeds, betting buttons, bet resolution, session summary
-- [ ] **Phase 4: Stats and Social** - Slash commands, per-player stats, leaderboard, boss difficulty comparison
+- [x] **Phase 4: Stats and Social** - Slash commands, per-player stats, leaderboard, boss difficulty comparison (completed 2026-02-27)
 
 ## Phase Details
 
@@ -91,4 +91,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Watcher Core | 7/7 | Complete | 2026-02-26 |
 | 2. Event Pipeline | 5/5 | Complete | 2026-02-27 |
 | 3. Discord Notifications and Betting | 4/4 | Complete | 2026-02-27 |
-| 4. Stats and Social | 0/TBD | Not started | - |
+| 4. Stats and Social | 3/3 | Complete    | 2026-02-27 |
