@@ -47,13 +47,14 @@ class TestFullPipeline:
             encounter_confirm_frames=3,
             phase_transition_window=0.3,
         )
+        fsm.bar_gone_grace = 0.1  # speed up for test
         # Confirm encounter
         for _ in range(5):
             fsm.process_frame(boss_bar_detected=True, boss_name="Godrick le Greffé")
 
-        # Bar disappears, wait for kill timeout
+        # Bar disappears, wait for grace + kill timeout
         start = time.time()
-        while time.time() - start < 0.6:
+        while time.time() - start < 0.8:
             fsm.process_frame(boss_bar_detected=False)
             time.sleep(0.05)
 
@@ -140,10 +141,13 @@ class TestFullPipeline:
             encounter_confirm_frames=3,
             phase_transition_window=5.0,
         )
+        fsm.bar_gone_grace = 0.0  # minimal grace for this test
         # Encounter
         for _ in range(5):
             fsm.process_frame(boss_bar_detected=True, boss_name="Test Boss")
-        # Bar disappears (enters FIGHT_RESOLVING)
+        # Bar disappears — first frame starts grace, second passes it
+        fsm.process_frame(boss_bar_detected=False)
+        time.sleep(0.01)
         fsm.process_frame(boss_bar_detected=False)
         assert fsm.state == FightState.FIGHT_RESOLVING
         # Death detected during resolution
@@ -159,3 +163,47 @@ class TestFullPipeline:
         """
         # This is a design documentation test — co-op is not an FSM concern
         pass
+
+
+class TestKillDetectedIntegration:
+    """Integration tests for immediate kill via gold text detection."""
+
+    def test_encounter_to_immediate_kill(self):
+        """Simulate: bar appears -> confirmed -> gold text -> immediate kill."""
+        events: list[tuple[str, str]] = []
+        fsm = BossFightFSM(
+            on_encounter=lambda name: events.append(("encounter", name)),
+            on_death=lambda name: events.append(("death", name)),
+            on_kill=lambda name: events.append(("kill", name)),
+            on_abandon=lambda name: events.append(("abandon", name)),
+            encounter_confirm_frames=3,
+        )
+        for _ in range(5):
+            fsm.process_frame(boss_bar_detected=True, boss_name="Godrick le Greffé")
+        assert ("encounter", "Godrick le Greffé") in events
+        # Gold text detected (bar may or may not still be visible)
+        fsm.process_frame(boss_bar_detected=False, kill_detected=True)
+        assert ("kill", "Godrick le Greffé") in events
+
+    def test_kill_detected_during_resolving_integration(self):
+        """Gold text during resolving phase confirms kill immediately."""
+        events: list[tuple[str, str]] = []
+        fsm = BossFightFSM(
+            on_encounter=lambda name: events.append(("encounter", name)),
+            on_death=lambda name: events.append(("death", name)),
+            on_kill=lambda name: events.append(("kill", name)),
+            on_abandon=lambda name: events.append(("abandon", name)),
+            encounter_confirm_frames=3,
+            phase_transition_window=10.0,
+        )
+        fsm.bar_gone_grace = 0.0
+        for _ in range(5):
+            fsm.process_frame(boss_bar_detected=True, boss_name="Radahn")
+        fsm.process_frame(boss_bar_detected=False)
+        time.sleep(0.01)
+        fsm.process_frame(boss_bar_detected=False)
+        assert fsm.state == FightState.FIGHT_RESOLVING
+        # Gold text arrives
+        fsm.process_frame(boss_bar_detected=False, kill_detected=True)
+        assert ("kill", "Radahn") in events
+        # No timeout needed — resolved immediately
