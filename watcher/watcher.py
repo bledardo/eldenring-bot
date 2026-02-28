@@ -125,6 +125,7 @@ class Watcher:
         )
 
         # State tracking
+        self._current_frame: np.ndarray | None = None  # current frame for callbacks
         self._current_boss_name: str | None = None
         self._coop_detected: bool = False
         self._last_flush_time: float = 0.0
@@ -199,6 +200,9 @@ class Watcher:
                 time.sleep(frame_interval)
                 continue
 
+            # Store current frame for use by FSM callbacks
+            self._current_frame = full_frame
+
             # Crop all needed regions from the single capture
             boss_bar_frame = self._capture.crop_region(full_frame, BOSS_BAR_REGION)
             you_died_frame = self._capture.crop_region(full_frame, YOU_DIED_REGION)
@@ -225,6 +229,27 @@ class Watcher:
                     _, png_buf = cv2.imencode(".png", full_frame)
                     self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
                     logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
+                # Log kill confidence during resolving for diagnosis
+                if self._fsm.state == FightState.FIGHT_RESOLVING:
+                    conf = self._enemy_felled.last_confidence
+                    # Log every second (every 10th frame at 10fps)
+                    if not hasattr(self, "_resolve_log_count"):
+                        self._resolve_log_count = 0
+                    self._resolve_log_count += 1
+                    if self._resolve_log_count % 10 == 1:
+                        logger.info(
+                            "Kill detection resolving — confidence: {:.3f} (threshold: {:.2f})",
+                            conf, 0.65,
+                        )
+                    # Save debug frame once for diagnosis
+                    if not getattr(self, "_resolving_debug_saved", False):
+                        self._resolving_debug_saved = True
+                        dbg_dir = self._config.data_dir / "screenshots"
+                        dbg_dir.mkdir(parents=True, exist_ok=True)
+                        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), you_died_frame)
+                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_full.png"), full_frame)
+                        logger.info("Kill debug screenshots saved to {}", dbg_dir)
 
             # Co-op detection disabled — structural fallback has too many false positives
             # TODO: re-enable when a proper coop_template is available
@@ -297,7 +322,7 @@ class Watcher:
 
             # Debug screenshots on detection triggers
             if self._config.debug_screenshots:
-                self._save_debug_screenshot(bar_detected, death_detected)
+                self._save_debug_screenshot(bar_detected, death_detected, full_frame)
 
             # Periodic queue flush (every ~30s)
             now = time.time()
@@ -330,12 +355,14 @@ class Watcher:
                 self._unknown_boss_logged = True
             return
 
-        # Capture encounter screenshot for Discord embed fallback
+        # Use the current frame (already captured) for encounter screenshot
         try:
-            encounter_frame = self._capture.grab_full()
-            if encounter_frame is not None and isinstance(encounter_frame, np.ndarray):
-                _, png_buf = cv2.imencode(".png", encounter_frame)
+            if self._current_frame is not None:
+                _, png_buf = cv2.imencode(".png", self._current_frame)
                 self._encounter_screenshot = base64.b64encode(png_buf).decode("ascii")
+                logger.debug("Encounter screenshot captured ({} bytes)", len(self._encounter_screenshot))
+            else:
+                logger.warning("No current frame available for encounter screenshot")
         except Exception as exc:
             logger.debug("Failed to capture encounter screenshot: {}", exc)
 
@@ -438,9 +465,19 @@ class Watcher:
         self._kill_screenshot = None
         self._encounter_screenshot = None
         self._unknown_boss_logged = False
+        self._resolving_debug_saved = False
+        self._resolve_log_count = 0
 
-    def _save_debug_screenshot(self, bar_detected: bool, death_detected: bool) -> None:
-        """Save debug screenshots on detection triggers."""
+    def _save_debug_screenshot(
+        self, bar_detected: bool, death_detected: bool, frame: np.ndarray | None = None,
+    ) -> None:
+        """Save debug screenshots on detection triggers.
+
+        Args:
+            bar_detected: Whether the boss health bar is visible.
+            death_detected: Whether death text is visible.
+            frame: Pre-captured frame to save (avoids extra BetterCam grab).
+        """
         if not (bar_detected or death_detected):
             return
 
@@ -450,7 +487,8 @@ class Watcher:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         event_type = "death" if death_detected else "bar"
 
-        frame = self._capture.capture_full()
+        if frame is None:
+            frame = self._capture.capture_full()
         if frame is not None:
             path = screenshot_dir / f"{timestamp}_{event_type}.png"
             cv2.imwrite(str(path), frame)

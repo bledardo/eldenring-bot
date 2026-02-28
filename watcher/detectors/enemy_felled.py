@@ -97,10 +97,18 @@ class EnemyFelledDetector:
         """Template matching on gold-channel binary. Fast (<1ms)."""
         binary = self._preprocess_gold(frame)
 
+        # Check if there's any gold content at all
+        gold_pixels = np.count_nonzero(binary)
+        if gold_pixels > 100:
+            logger.trace("Gold pixels in frame: {}", gold_pixels)
+
         result = cv2.matchTemplate(binary, self._template, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, _ = cv2.minMaxLoc(result)
+        _, max_val, _, max_loc = cv2.minMaxLoc(result)
 
         self.last_confidence = max_val
+        if gold_pixels > 500:
+            logger.debug("Kill template confidence: {:.3f} (threshold: {:.2f}, gold_px: {})",
+                         max_val, self._threshold, gold_pixels)
         if max_val >= self._threshold:
             return True
         return False
