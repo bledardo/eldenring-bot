@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -50,6 +51,7 @@ class BossNameDetector:
         self._ocr_available = False
         self.last_raw_ocr: str | None = None
         self.last_match_score: int | None = None
+        self.last_was_fallback: bool = False
 
         # Load boss names
         try:
@@ -163,6 +165,24 @@ class BossNameDetector:
         return None
 
     @staticmethod
+    def _clean_ocr_text(raw: str) -> str | None:
+        """Strip OCR noise (stray punctuation, pipes, quotes) from raw text.
+
+        Returns cleaned text if it looks like a plausible boss name (≥3 alpha
+        chars), or None if it's just garbage."""
+        # Remove leading/trailing non-alpha characters (pipes, quotes, dashes, digits, etc.)
+        cleaned = re.sub(r'^[^a-zA-ZÀ-ÿ]+', '', raw)
+        cleaned = re.sub(r'[^a-zA-ZÀ-ÿ]+$', '', cleaned)
+        # Remove stray pipes and isolated single characters surrounded by spaces/punctuation
+        cleaned = re.sub(r'\s*\|.*', '', cleaned)
+        cleaned = cleaned.strip()
+        # Must have at least 3 alphabetic characters to be plausible
+        alpha_count = sum(1 for c in cleaned if c.isalpha())
+        if alpha_count < 3:
+            return None
+        return cleaned
+
+    @staticmethod
     def _length_ratio(ocr_text: str, candidate: str) -> float:
         """Return len(ocr) / len(candidate).  Prevents short OCR fragments
         from matching long boss names via token_set (e.g. "de l'Arbre" matching
@@ -249,6 +269,7 @@ class BossNameDetector:
         Returns:
             Canonical boss name or None.
         """
+        self.last_was_fallback = False
         if frame is None or frame.size == 0:
             return None
         if not self._ocr_available:
@@ -272,6 +293,7 @@ class BossNameDetector:
 
         # Save preprocessed debug images on first call per detect()
         debug_preprocessed: dict[str, np.ndarray] = {}
+        all_raw_texts: list[str] = []
 
         for label, preprocess_fn in strategies:
             preprocessed = preprocess_fn(frame)
@@ -280,6 +302,7 @@ class BossNameDetector:
             if not raw_text:
                 continue
             self.last_raw_ocr = raw_text
+            all_raw_texts.append(raw_text)
             logger.debug("OCR [{}] raw text: '{}'", label, raw_text)
 
             result = self.match_name(raw_text)
@@ -289,6 +312,25 @@ class BossNameDetector:
         # Store debug images for the watcher to save on failure
         self._last_debug_frames = debug_preprocessed
         self._last_input_frame = frame
+
+        # Fallback: pick the cleanest OCR text across all strategies
+        # so the boss is tracked even if not in the canonical list.
+        best_cleaned: str | None = None
+        best_alpha = 0
+        for raw in all_raw_texts:
+            cleaned = self._clean_ocr_text(raw)
+            if cleaned:
+                alpha = sum(1 for c in cleaned if c.isalpha())
+                if alpha > best_alpha:
+                    best_alpha = alpha
+                    best_cleaned = cleaned
+        if best_cleaned:
+            self.last_was_fallback = True
+            logger.info(
+                "OCR fallback: no canonical match, using cleaned text: '{}'",
+                best_cleaned,
+            )
+            return best_cleaned
 
         logger.debug("OCR: no valid match from any strategy")
         return None

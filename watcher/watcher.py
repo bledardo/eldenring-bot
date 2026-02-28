@@ -253,8 +253,10 @@ class Watcher:
                     detected_name = self._boss_name.detect(boss_bar_frame)
                 if detected_name:
                     self._current_boss_name = detected_name
+                    self._current_boss_is_fallback = self._boss_name.last_was_fallback
                     boss_name = detected_name
-                    logger.info("Boss identified: {}", detected_name)
+                    logger.info("Boss identified: {}{}", detected_name,
+                                " (OCR fallback)" if self._current_boss_is_fallback else "")
                     # Save encounter screenshot
                     if self._config.debug_screenshots:
                         self._save_debug_screenshot(bar_detected, False)
@@ -345,6 +347,8 @@ class Watcher:
             "session_id": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+        if self._current_boss_is_fallback:
+            event["ocr_fallback"] = True
         if self._encounter_screenshot:
             event["screenshot_base64"] = self._encounter_screenshot
         self._http_client.send_event(event)
@@ -428,6 +432,7 @@ class Watcher:
     def _reset_fight_state(self) -> None:
         """Reset per-fight tracking state."""
         self._current_boss_name = None
+        self._current_boss_is_fallback = False
         self._coop_detected = False
         self._fight_start_time = None
         self._kill_screenshot = None
