@@ -21,6 +21,8 @@ Fonctionne en arrière-plan dans le system tray — aucune interaction requise p
 2. Lancer `EldenWatcher.exe`
 3. Configurer `%USERPROFILE%\.elden-watcher\config.toml` :
 
+> **Note Windows SmartScreen** : au premier lancement, Windows peut afficher un avertissement "Application non reconnue" car l'exe n'est pas signé avec un certificat payant. Cliquer sur **"Informations complémentaires"** puis **"Exécuter quand même"**. Le code source est entièrement open source et vérifiable ici.
+
 ```toml
 api_url = "https://votre-serveur.com/api"
 api_key = "votre-clé"
