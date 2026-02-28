@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "elden-ring-watcher"
-version = "1.0.1"
+version = "1.0.2"
 description = "Automatically detect boss encounters in Elden Ring and report events to a remote server"
 requires-python = ">=3.10"
 license = {text = "MIT"}
