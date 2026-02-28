@@ -305,9 +305,15 @@ class BossNameDetector:
             all_raw_texts.append(raw_text)
             logger.debug("OCR [{}] raw text: '{}'", label, raw_text)
 
+            # Try matching raw text first, then cleaned version (without trailing noise)
             result = self.match_name(raw_text)
             if result:
                 return result[0]
+            cleaned = self._clean_ocr_text(raw_text)
+            if cleaned and cleaned != raw_text:
+                result = self.match_name(cleaned)
+                if result:
+                    return result[0]
 
         # Store debug images for the watcher to save on failure
         self._last_debug_frames = debug_preprocessed

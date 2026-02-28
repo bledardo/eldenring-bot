@@ -241,15 +241,18 @@ class Watcher:
                             "Kill detection resolving — confidence: {:.3f} (threshold: {:.2f})",
                             conf, 0.65,
                         )
-                    # Save debug frame once for diagnosis
-                    if not getattr(self, "_resolving_debug_saved", False):
-                        self._resolving_debug_saved = True
+                    # Save debug frames during resolving (first, middle, late)
+                    if not hasattr(self, "_resolving_debug_count"):
+                        self._resolving_debug_count = 0
+                    self._resolving_debug_count += 1
+                    # Save at 0s, 3s, 6s into resolving (frames 1, 30, 60 at 10fps)
+                    if self._resolving_debug_count in (1, 30, 60):
                         dbg_dir = self._config.data_dir / "screenshots"
                         dbg_dir.mkdir(parents=True, exist_ok=True)
                         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                         cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), you_died_frame)
                         cv2.imwrite(str(dbg_dir / f"{ts}_kill_full.png"), full_frame)
-                        logger.info("Kill debug screenshots saved to {}", dbg_dir)
+                        logger.info("Kill debug screenshot #{} saved to {}", self._resolving_debug_count, dbg_dir)
 
             # Co-op detection disabled — structural fallback has too many false positives
             # TODO: re-enable when a proper coop_template is available
@@ -465,7 +468,7 @@ class Watcher:
         self._kill_screenshot = None
         self._encounter_screenshot = None
         self._unknown_boss_logged = False
-        self._resolving_debug_saved = False
+        self._resolving_debug_count = 0
         self._resolve_log_count = 0
 
     def _save_debug_screenshot(
