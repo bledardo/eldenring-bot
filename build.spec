@@ -1,39 +1,32 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec file for Elden Ring Watcher.
 
-Bundles all dependencies including EasyOCR models, PyTorch, and OpenCV.
-Expected exe size: ~300-500MB.
+Bundles all dependencies including Tesseract OCR and OpenCV.
+Expected exe size: ~50-100MB (much smaller without PyTorch).
 """
 
 import sys
 from pathlib import Path
 
-# Import build helper for EasyOCR data
+# Import build helper for Tesseract data
 sys.path.insert(0, str(Path(SPECPATH)))
-from build import find_easyocr_data
+from build import get_tesseract_datas
 
-# Collect EasyOCR model data
-easyocr_datas = find_easyocr_data()
+# Collect Tesseract data and binaries
+tesseract_datas, tesseract_binaries = get_tesseract_datas()
 
 a = Analysis(
     ["watcher/main.py"],
     pathex=["watcher"],
-    binaries=[],
+    binaries=tesseract_binaries,
     datas=[
         ("watcher/assets/boss_names.json", "watcher/assets"),
         ("watcher/assets/templates", "watcher/assets/templates"),
     ]
-    + easyocr_datas,
+    + tesseract_datas,
     hiddenimports=[
-        # PyTorch
-        "torch",
-        "torch.jit",
-        "torch._C",
-        # EasyOCR
-        "easyocr",
-        # scikit-image (easyocr dependency)
-        "skimage",
-        "skimage.transform",
+        # OCR
+        "pytesseract",
         # Image processing
         "PIL",
         "PIL.Image",
@@ -60,19 +53,6 @@ a = Analysis(
     excludes=[
         "tkinter",
         "matplotlib",
-        "scipy.spatial.cython_blas",
-        "scipy.spatial.cython_lapack",
-        # Exclude CUDA/GPU libs (CPU-only inference, saves ~2GB)
-        "torch.cuda",
-        "torch.distributed",
-        "torch.testing",
-        "torch.utils.tensorboard",
-        "torch.utils.bottleneck",
-        "torch.onnx",
-        "torch.optim",
-        "torch.autograd.profiler",
-        "caffe2",
-        "triton",
     ],
     noarchive=False,
 )

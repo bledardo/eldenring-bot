@@ -13,42 +13,41 @@ Test:
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 
-def find_easyocr_data() -> list[tuple[str, str]]:
-    """Locate EasyOCR package directory and return data file tuples.
+def get_tesseract_datas() -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    """Locate Tesseract binary/DLLs and tessdata for bundling.
 
     Returns:
-        List of (source, destination) tuples for PyInstaller datas.
+        Tuple of (datas, binaries) lists for PyInstaller.
     """
-    datas = []
-    try:
-        import easyocr
+    datas: list[tuple[str, str]] = []
+    binaries: list[tuple[str, str]] = []
 
-        easyocr_dir = Path(easyocr.__file__).parent
+    # Bundle tessdata from watcher/assets/tessdata
+    tessdata_dir = Path("watcher/assets/tessdata")
+    if tessdata_dir.exists():
+        datas.append((str(tessdata_dir), "watcher/assets/tessdata"))
+    else:
+        print("WARNING: tessdata not found at watcher/assets/tessdata")
 
-        # Include model directory
-        model_dir = easyocr_dir / "model"
-        if model_dir.exists():
-            datas.append((str(model_dir), "easyocr/model"))
+    # Bundle Tesseract binary + DLLs from Program Files
+    tesseract_dir = Path(os.environ.get("TESSERACT_DIR", r"C:\Program Files\Tesseract-OCR"))
+    if tesseract_dir.exists():
+        tesseract_exe = tesseract_dir / "tesseract.exe"
+        if tesseract_exe.exists():
+            binaries.append((str(tesseract_exe), "tesseract"))
+            # Bundle all DLLs in the Tesseract directory
+            for dll in tesseract_dir.glob("*.dll"):
+                binaries.append((str(dll), "tesseract"))
+    else:
+        print(f"WARNING: Tesseract not found at {tesseract_dir}")
 
-        # Include character directory
-        char_dir = easyocr_dir / "character"
-        if char_dir.exists():
-            datas.append((str(char_dir), "easyocr/character"))
-
-        # Also check user's .EasyOCR model directory
-        user_model_dir = Path.home() / ".EasyOCR" / "model"
-        if user_model_dir.exists():
-            datas.append((str(user_model_dir), "easyocr_models"))
-
-    except ImportError:
-        print("WARNING: easyocr not installed, models will not be bundled")
-
-    return datas
+    return datas, binaries
 
 
 def build() -> None:

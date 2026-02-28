@@ -14,6 +14,7 @@ from watcher.config import load_config
 from watcher.event_queue import EventQueue
 from watcher.http_client import WatcherHttpClient
 from watcher.logger import setup_logging
+from watcher.paths import configure_tesseract
 from watcher.process_monitor import ProcessMonitor
 from watcher.tray import TrayApp, TrayStatus
 from watcher.updater import perform_update_if_available
@@ -22,6 +23,9 @@ from watcher.watcher import Watcher
 
 def main() -> None:
     """Main entry point — wires config, logging, tray, process monitor, and watcher."""
+    # Configure Tesseract paths before anything else
+    configure_tesseract()
+
     # Load configuration
     config = load_config()
     setup_logging(config)

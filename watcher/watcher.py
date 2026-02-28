@@ -112,7 +112,7 @@ class Watcher:
         template_dir = asset_path("watcher/assets/templates")
         self._health_bar = HealthBarDetector(template_dir)
         self._boss_name = BossNameDetector(asset_path("watcher/assets/boss_names.json"))
-        self._you_died = YouDiedDetector(template_dir, reader=self._boss_name._reader)
+        self._you_died = YouDiedDetector(template_dir)
         self._enemy_felled = EnemyFelledDetector(template_dir=template_dir)
         self._coop = CoopDetector(template_dir)
 

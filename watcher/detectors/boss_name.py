@@ -1,12 +1,14 @@
-"""Boss name OCR with EasyOCR and fuzzy matching against canonical names.
+"""Boss name OCR with Tesseract and fuzzy matching against canonical names.
 
-EasyOCR model loading is expensive (~2-3s). Initialize Reader once at startup.
-The detect() method is expensive (~100-500ms) — only call when health bar first confirmed.
+Tesseract is fast (~10-50ms) compared to EasyOCR (~100-500ms).
+The detect() method runs OCR with multiple preprocessing strategies and
+fuzzy-matches against canonical boss names.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 
@@ -15,10 +17,10 @@ import numpy as np
 from loguru import logger
 
 try:
-    import easyocr
+    import pytesseract
 except ImportError:
-    easyocr = None  # type: ignore[assignment]
-    logger.warning("easyocr not available — boss name OCR disabled")
+    pytesseract = None  # type: ignore[assignment]
+    logger.warning("pytesseract not available — boss name OCR disabled")
 
 try:
     from rapidfuzz import fuzz, process as rfprocess
@@ -33,24 +35,21 @@ class BossNameDetector:
 
     Args:
         boss_names_path: Path to JSON file with canonical boss names.
-        ocr_languages: Languages for EasyOCR.
         match_threshold: Minimum fuzzy match score (0-100).
+        tessdata_dir: Path to tessdata directory (for bundled deployments).
     """
 
     def __init__(
         self,
         boss_names_path: Path,
-        ocr_languages: list[str] | None = None,
         match_threshold: int = 60,
+        tessdata_dir: Path | None = None,
     ) -> None:
         self._match_threshold = match_threshold
         self._boss_names: list[str] = []
-        self._reader = None
+        self._ocr_available = False
         self.last_raw_ocr: str | None = None
         self.last_match_score: int | None = None
-
-        if ocr_languages is None:
-            ocr_languages = ["fr", "en"]
 
         # Load boss names
         try:
@@ -60,15 +59,19 @@ class BossNameDetector:
         except Exception as exc:
             logger.error("Failed to load boss names from {}: {}", boss_names_path, exc)
 
-        # Initialize EasyOCR reader (expensive — do once)
-        if easyocr is not None:
+        # Set tessdata directory if provided
+        if tessdata_dir is not None and tessdata_dir.exists():
+            os.environ["TESSDATA_PREFIX"] = str(tessdata_dir)
+            logger.debug("TESSDATA_PREFIX set to {}", tessdata_dir)
+
+        # Verify Tesseract is available
+        if pytesseract is not None:
             try:
-                start = time.time()
-                self._reader = easyocr.Reader(ocr_languages, gpu=False, verbose=False)
-                elapsed = time.time() - start
-                logger.info("EasyOCR reader initialized ({:.1f}s)", elapsed)
+                version = pytesseract.get_tesseract_version()
+                self._ocr_available = True
+                logger.info("Tesseract OCR initialized (v{})", version)
             except Exception as exc:
-                logger.error("EasyOCR init failed: {}", exc)
+                logger.error("Tesseract not found or not working: {}", exc)
 
     def _preprocess(self, frame: np.ndarray) -> np.ndarray:
         """Preprocessing pipeline for OCR accuracy.
@@ -146,16 +149,17 @@ class BossNameDetector:
         return result
 
     def _ocr_frame(self, preprocessed: np.ndarray) -> str | None:
-        """Run EasyOCR on a single preprocessed frame."""
-        if self._reader is None:
+        """Run Tesseract OCR on a single preprocessed frame."""
+        if not self._ocr_available:
             return None
         try:
-            results = self._reader.readtext(preprocessed, detail=0, paragraph=True)
-            if results:
-                text = " ".join(results).strip()
-                return text if text else None
+            text = pytesseract.image_to_string(
+                preprocessed,
+                config="--psm 7 -l fra+eng",
+            ).strip()
+            return text if text else None
         except Exception as exc:
-            logger.warning("EasyOCR failed: {}", exc)
+            logger.warning("Tesseract OCR failed: {}", exc)
         return None
 
     def match_name(self, ocr_text: str) -> tuple[str, int] | None:
@@ -214,7 +218,7 @@ class BossNameDetector:
         """Try each preprocessing strategy, OCR, and fuzzy-match end-to-end.
 
         Returns the first strategy that produces a valid boss name match.
-        WARNING: Expensive (~100-500ms). Only call when health bar first confirmed.
+        WARNING: Expensive (~10-50ms). Only call when health bar first confirmed.
 
         Args:
             frame: BGR numpy array of the boss name region.
@@ -224,8 +228,8 @@ class BossNameDetector:
         """
         if frame is None or frame.size == 0:
             return None
-        if self._reader is None:
-            logger.warning("EasyOCR reader not initialized — OCR disabled")
+        if not self._ocr_available:
+            logger.warning("Tesseract OCR not available — OCR disabled")
             return None
 
         # Ensure contiguous BGR array (BetterCam may return non-contiguous)

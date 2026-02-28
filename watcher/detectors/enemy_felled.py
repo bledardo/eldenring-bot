@@ -21,7 +21,6 @@ class EnemyFelledDetector:
 
     Args:
         template_dir: Directory containing template images.
-        reader: Kept for API compat (unused with template matching).
         confirm_count: Consecutive hits needed before confirming.
         threshold: Template matching confidence threshold.
     """
@@ -29,7 +28,6 @@ class EnemyFelledDetector:
     def __init__(
         self,
         template_dir: Path | None = None,
-        reader=None,
         confirm_count: int = 2,
         threshold: float = 0.65,
     ) -> None:
