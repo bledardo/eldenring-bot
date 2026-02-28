@@ -44,6 +44,24 @@ def main() -> None:
     watcher_thread: threading.Thread | None = None
     session_id: str | None = None
 
+    def _send_session_end() -> None:
+        """Send session_end event and clear session_id. Idempotent."""
+        nonlocal session_id
+        if session_id is None:
+            return
+        sid = session_id
+        session_id = None  # Clear first to prevent double send
+        try:
+            http_client.send_event({
+                "type": "session_end",
+                "event_id": str(uuid.uuid4()),
+                "session_id": sid,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info("Sent session_end for session {}", sid)
+        except Exception as exc:
+            logger.warning("Failed to send session_end: {}", exc)
+
     def request_shutdown() -> None:
         nonlocal shutdown_requested
         if shutdown_requested:
@@ -84,13 +102,7 @@ def main() -> None:
         logger.info("Elden Ring closed")
         if watcher_instance is not None:
             watcher_instance.stop()
-        # Send session end event
-        http_client.send_event({
-            "type": "session_end",
-            "event_id": str(uuid.uuid4()),
-            "session_id": session_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        _send_session_end()
         tray.set_status(TrayStatus.NO_GAME)
         watcher_thread = None
 
@@ -135,6 +147,8 @@ def main() -> None:
     finally:
         if watcher_instance is not None:
             watcher_instance.stop()
+        # Send session_end if session still active (e.g. Ctrl+C / tray quit while game running)
+        _send_session_end()
         # Final queue flush
         flushed = http_client.flush_queue()
         if flushed > 0:
