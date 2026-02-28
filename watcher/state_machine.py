@@ -48,7 +48,7 @@ class BossFightFSM:
         on_kill: Callable[[str], None],
         on_abandon: Callable[[str], None],
         encounter_confirm_frames: int = 3,
-        phase_transition_window: float = 10.0,
+        phase_transition_window: float = 20.0,
         cooldown_duration: float = 5.0,
     ) -> None:
         self._on_encounter = on_encounter

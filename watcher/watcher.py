@@ -245,8 +245,8 @@ class Watcher:
                     if not hasattr(self, "_resolving_debug_count"):
                         self._resolving_debug_count = 0
                     self._resolving_debug_count += 1
-                    # Save at 0s, 3s, 6s into resolving (frames 1, 30, 60 at 10fps)
-                    if self._resolving_debug_count in (1, 30, 60):
+                    # Save at 0s, 5s, 10s, 15s into resolving (frames 1, 50, 100, 150 at 10fps)
+                    if self._resolving_debug_count in (1, 50, 100, 150):
                         dbg_dir = self._config.data_dir / "screenshots"
                         dbg_dir.mkdir(parents=True, exist_ok=True)
                         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
