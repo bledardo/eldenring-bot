@@ -162,11 +162,23 @@ class BossNameDetector:
             logger.warning("Tesseract OCR failed: {}", exc)
         return None
 
+    @staticmethod
+    def _length_ratio(ocr_text: str, candidate: str) -> float:
+        """Return len(ocr) / len(candidate).  Prevents short OCR fragments
+        from matching long boss names via token_set (e.g. "de l'Arbre" matching
+        "Sentinelle de l'Arbre")."""
+        if not candidate:
+            return 0.0
+        return len(ocr_text) / len(candidate)
+
     def match_name(self, ocr_text: str) -> tuple[str, int] | None:
         """Fuzzy match OCR text to canonical boss names.
 
         Tries ratio, then token_sort_ratio, then token_set_ratio
-        (progressively more tolerant of OCR noise).
+        (progressively more tolerant of OCR noise).  Each match is also
+        checked against a minimum length ratio to reject partial OCR
+        fragments that share common words with the wrong boss
+        (e.g. "Sentinelle" vs "Chien de Garde").
 
         Args:
             ocr_text: Raw text from OCR.
@@ -178,11 +190,13 @@ class BossNameDetector:
             logger.warning("Fuzzy matching unavailable (rapidfuzz not loaded)")
             return None
 
+        min_length_ratio = 0.55  # OCR text must be ≥55% of candidate length
+
         try:
             scorers = [
-                ("ratio", fuzz.ratio, self._match_threshold),
-                ("token_sort", fuzz.token_sort_ratio, self._match_threshold),
-                ("token_set", fuzz.token_set_ratio, self._match_threshold),
+                ("ratio", fuzz.ratio, 65),
+                ("token_sort", fuzz.token_sort_ratio, 65),
+                ("token_set", fuzz.token_set_ratio, 75),
             ]
 
             for scorer_name, scorer, cutoff in scorers:
@@ -194,10 +208,19 @@ class BossNameDetector:
                 )
                 if result:
                     name, score, _ = result
+                    lr = self._length_ratio(ocr_text, name)
+                    if lr < min_length_ratio:
+                        logger.debug(
+                            "Fuzzy match ({}) rejected — length ratio too low: "
+                            "'{}' -> '{}' (score={}, length_ratio={:.2f}, min={})",
+                            scorer_name, ocr_text, name, int(score),
+                            lr, min_length_ratio,
+                        )
+                        continue
                     self.last_match_score = int(score)
                     logger.debug(
-                        "Fuzzy match ({}): '{}' -> '{}' (score={})",
-                        scorer_name, ocr_text, name, int(score),
+                        "Fuzzy match ({}): '{}' -> '{}' (score={}, length_ratio={:.2f})",
+                        scorer_name, ocr_text, name, int(score), lr,
                     )
                     return (name, int(score))
 
