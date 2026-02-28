@@ -109,6 +109,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
+    icon="watcher/assets/icon.ico",
     console=False,  # GUI app — no console window
     disable_windowed_traceback=False,
     argv_emulation=False,
