@@ -7,3 +7,7 @@ __pycache__/
 *.spec.bak
 debug_*.py
 er-boss.png
+
+# Internal planning / dev notes
+.planning/
+docs/plans/
