@@ -85,12 +85,12 @@ def download_and_replace(download_url: str) -> bool:
     """Download new exe and create self-update batch script.
 
     The batch script:
-    1. Waits for current process to exit
-    2. Renames current exe to .old
-    3. Renames new exe to current name
-    4. Deletes .old
+    1. Waits for current process to fully exit (retry loop)
+    2. Deletes any leftover .old from a previous update
+    3. Renames current exe to .old
+    4. Renames downloaded exe to current name
     5. Launches new exe
-    6. Deletes itself
+    6. Cleans up .old and deletes itself
 
     Args:
         download_url: URL of the new .exe to download.
@@ -99,13 +99,14 @@ def download_and_replace(download_url: str) -> bool:
         True if update initiated (app will exit), False on failure.
     """
     try:
-        current_exe = Path(sys.executable)
+        current_exe = Path(sys.executable).resolve()
         if not current_exe.name.endswith(".exe"):
             logger.warning("Not running as .exe — skipping update")
             return False
 
-        # Download to temp file alongside current exe
-        temp_path = current_exe.parent / f"{current_exe.stem}_update.exe"
+        exe_dir = current_exe.parent
+        old_path = exe_dir / f"{current_exe.stem}.old"
+        temp_path = exe_dir / f"{current_exe.stem}_update.exe"
 
         logger.info("Downloading update from {}", download_url)
         response = requests.get(download_url, stream=True, timeout=60)
@@ -117,15 +118,74 @@ def download_and_replace(download_url: str) -> bool:
 
         logger.info("Update downloaded to {}", temp_path)
 
+        current_pid = os.getpid()
+
         # Create batch script for self-update
-        batch_path = current_exe.parent / "updater.bat"
+        # Uses full paths, retry loops, and proper error handling.
+        batch_path = exe_dir / "updater.bat"
         batch_content = f"""@echo off
-timeout /t 2 /nobreak >nul
-ren "{current_exe.name}" "{current_exe.stem}.old"
-ren "{temp_path.name}" "{current_exe.name}"
-del "{current_exe.stem}.old"
-start "" "{current_exe.name}"
-del "%~f0"
+cd /d "{exe_dir}"
+
+echo Waiting for watcher (PID {current_pid}) to exit...
+:WAIT_EXIT
+tasklist /FI "PID eq {current_pid}" 2>nul | find /I "{current_pid}" >nul
+if not errorlevel 1 (
+    timeout /t 1 /nobreak >nul
+    goto WAIT_EXIT
+)
+echo Watcher exited.
+
+REM Delete leftover .old from previous update
+if exist "{old_path.name}" (
+    del /f /q "{old_path.name}" >nul 2>&1
+    if exist "{old_path.name}" (
+        echo WARNING: Could not delete old file, retrying...
+        timeout /t 2 /nobreak >nul
+        del /f /q "{old_path.name}" >nul 2>&1
+    )
+)
+
+REM Rename current exe to .old
+set RETRY=0
+:RENAME_OLD
+ren "{current_exe.name}" "{old_path.name}" >nul 2>&1
+if errorlevel 1 (
+    set /a RETRY+=1
+    if %RETRY% GEQ 10 (
+        echo ERROR: Failed to rename current exe after 10 retries. Aborting.
+        goto CLEANUP_FAIL
+    )
+    echo Retry %RETRY%/10 — file may be locked...
+    timeout /t 2 /nobreak >nul
+    goto RENAME_OLD
+)
+
+REM Rename downloaded exe to current name
+ren "{temp_path.name}" "{current_exe.name}" >nul 2>&1
+if errorlevel 1 (
+    echo ERROR: Failed to rename update file. Rolling back...
+    ren "{old_path.name}" "{current_exe.name}" >nul 2>&1
+    goto CLEANUP_FAIL
+)
+
+echo Update successful, starting new version...
+start "" "{current_exe}"
+
+REM Clean up .old file (best effort)
+timeout /t 3 /nobreak >nul
+del /f /q "{old_path.name}" >nul 2>&1
+
+REM Delete this script
+del /f /q "%~f0" >nul 2>&1
+exit /b 0
+
+:CLEANUP_FAIL
+echo Update failed. Cleaning up...
+if exist "{temp_path.name}" del /f /q "{temp_path.name}" >nul 2>&1
+echo Starting original version...
+if exist "{current_exe.name}" start "" "{current_exe}"
+del /f /q "%~f0" >nul 2>&1
+exit /b 1
 """
         with open(batch_path, "w") as f:
             f.write(batch_content)
@@ -134,6 +194,7 @@ del "%~f0"
         logger.info("Launching updater script, app will restart...")
         subprocess.Popen(
             ["cmd", "/c", str(batch_path)],
+            cwd=str(exe_dir),
             creationflags=subprocess.CREATE_NEW_CONSOLE if hasattr(subprocess, "CREATE_NEW_CONSOLE") else 0,
         )
         sys.exit(0)
@@ -142,7 +203,7 @@ del "%~f0"
         logger.warning("Update download failed: {}", exc)
         # Clean up temp file if it exists
         try:
-            temp_path = Path(sys.executable).parent / f"{Path(sys.executable).stem}_update.exe"
+            temp_path = Path(sys.executable).resolve().parent / f"{Path(sys.executable).stem}_update.exe"
             if temp_path.exists():
                 temp_path.unlink()
         except Exception:

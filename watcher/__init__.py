@@ -1,4 +1,4 @@
 """Elden Ring Watcher - Automatic boss encounter detection."""
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
