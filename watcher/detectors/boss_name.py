@@ -176,11 +176,51 @@ class BossNameDetector:
         # Remove stray pipes and isolated single characters surrounded by spaces/punctuation
         cleaned = re.sub(r'\s*\|.*', '', cleaned)
         cleaned = cleaned.strip()
-        # Must have at least 3 alphabetic characters to be plausible
+        # Must have at least 4 alphabetic characters to be plausible
         alpha_count = sum(1 for c in cleaned if c.isalpha())
-        if alpha_count < 3:
+        if alpha_count < 4:
             return None
+        # Reject garbage: real boss names are mostly letters+spaces, not
+        # scattered symbols/digits.  Require ≥65% alphabetic characters.
+        if len(cleaned) > 0 and alpha_count / len(cleaned) < 0.65:
+            return None
+        # Reject text with too many short tokens (≤2 chars) — OCR noise
+        # produces scattered fragments like "ae Pe er QR".
+        # Real boss names have mostly long words; French articles are exempt.
+        _FR_ARTICLES = {"de", "du", "le", "la", "l", "d", "des", "au"}
+        tokens = cleaned.split()
+        if len(tokens) > 3:
+            short_noise = sum(
+                1 for t in tokens
+                if len(t) <= 2 and t.lower() not in _FR_ARTICLES
+            )
+            if short_noise / len(tokens) > 0.3:
+                return None
         return cleaned
+
+    @staticmethod
+    def _looks_like_boss_name(text: str) -> bool:
+        """Extra validation for OCR fallback — stricter than _clean_ocr_text.
+
+        A real boss name (in French) has:
+        - At least one capitalized word ≥4 chars (e.g. "Margit", "Radahn")
+        - Not too many words (boss names are ≤8 words)
+        - At least 6 total alpha chars
+        """
+        tokens = text.split()
+        # Too many words = likely OCR reading UI/subtitles
+        if len(tokens) > 8:
+            return False
+        # Must have enough total alpha chars
+        alpha_total = sum(1 for c in text if c.isalpha())
+        if alpha_total < 6:
+            return False
+        # Must have at least one capitalized word ≥4 chars
+        has_proper_word = any(
+            len(t) >= 4 and t[0].isupper()
+            for t in tokens
+        )
+        return has_proper_word
 
     @staticmethod
     def _length_ratio(ocr_text: str, candidate: str) -> float:
@@ -321,11 +361,12 @@ class BossNameDetector:
 
         # Fallback: pick the cleanest OCR text across all strategies
         # so the boss is tracked even if not in the canonical list.
+        # Stricter than _clean_ocr_text — must look like a real boss name.
         best_cleaned: str | None = None
         best_alpha = 0
         for raw in all_raw_texts:
             cleaned = self._clean_ocr_text(raw)
-            if cleaned:
+            if cleaned and self._looks_like_boss_name(cleaned):
                 alpha = sum(1 for c in cleaned if c.isalpha())
                 if alpha > best_alpha:
                     best_alpha = alpha

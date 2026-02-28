@@ -190,14 +190,14 @@ exit /b 1
         with open(batch_path, "w") as f:
             f.write(batch_content)
 
-        # Launch updater and exit
-        logger.info("Launching updater script, app will restart...")
+        # Launch updater script (caller is responsible for exiting the process)
+        logger.info("Launching updater script, caller must exit the process...")
         subprocess.Popen(
             ["cmd", "/c", str(batch_path)],
             cwd=str(exe_dir),
             creationflags=subprocess.CREATE_NEW_CONSOLE if hasattr(subprocess, "CREATE_NEW_CONSOLE") else 0,
         )
-        sys.exit(0)
+        return True
 
     except Exception as exc:
         logger.warning("Update download failed: {}", exc)
@@ -209,8 +209,6 @@ exit /b 1
         except Exception:
             pass
         return False
-
-    return True
 
 
 def perform_update_if_available() -> bool:

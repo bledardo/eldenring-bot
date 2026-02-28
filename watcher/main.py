@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import signal
 import threading
 import uuid
@@ -136,7 +137,12 @@ def main() -> None:
             new_version = update_info["version"]
             tray.notify(f"Mise à jour v{new_version} disponible, téléchargement...")
             if download_and_replace(update_info["download_url"]):
-                return  # Update initiated — app will restart via batch script
+                # Update batch launched — force-kill the entire process so the
+                # batch script can rename the exe.  sys.exit() is not enough
+                # because non-daemon threads (pystray) keep the process alive.
+                logger.info("Update initiated, force-killing process for updater batch...")
+                tray.stop()
+                os._exit(0)
     except Exception:
         logger.warning("Auto-update check failed, continuing with current version")
 
