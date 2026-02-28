@@ -51,7 +51,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        "tkinter",
         "matplotlib",
         # EasyOCR / PyTorch — no longer needed (Tesseract replaces them)
         "torch",

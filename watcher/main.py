@@ -30,6 +30,10 @@ def main() -> None:
     config = load_config()
     setup_logging(config)
 
+    # Install log window sink (captures messages for the GUI viewer)
+    from watcher.log_window import install_sink
+    install_sink(level=config.log_level)
+
     logger.info("=" * 50)
     logger.info("Elden Ring Watcher v{}", __version__)
     logger.info("=" * 50)

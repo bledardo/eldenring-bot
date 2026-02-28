@@ -69,6 +69,7 @@ class TrayApp:
     def __init__(self, on_quit: Callable[[], None]) -> None:
         self._on_quit = on_quit
         self._status = TrayStatus.NO_GAME
+        self._log_window: object | None = None  # lazy import to avoid tkinter at module level
 
         if pystray is None:
             self.icon = None
@@ -93,8 +94,20 @@ class TrayApp:
                 enabled=False,
             ),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Logs", self._toggle_logs),
             pystray.MenuItem("Quit", self._quit),
         )
+
+    def _toggle_logs(self, icon: object = None, item: object = None) -> None:
+        """Toggle the log viewer window."""
+        if self._log_window is None:
+            try:
+                from watcher.log_window import LogWindow
+                self._log_window = LogWindow()
+            except Exception as exc:
+                logger.warning("Failed to create log window: {}", exc)
+                return
+        self._log_window.toggle()
 
     def _quit(self, icon: object = None, item: object = None) -> None:
         """Handle quit action from tray menu."""
