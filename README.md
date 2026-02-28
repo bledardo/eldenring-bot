@@ -18,9 +18,8 @@ Fonctionne en arrière-plan dans le system tray — aucune interaction requise p
 ### Méthode simple (recommandée)
 
 1. Télécharger `EldenWatcher.exe` depuis la [dernière release](https://github.com/bledardo/eldenring-bot/releases/latest)
-2. Installer [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) (cocher "French" dans les langues)
-3. Lancer `EldenWatcher.exe`
-4. Configurer `%USERPROFILE%\.elden-watcher\config.toml` :
+2. Lancer `EldenWatcher.exe`
+3. Configurer `%USERPROFILE%\.elden-watcher\config.toml` :
 
 ```toml
 api_url = "https://votre-serveur.com/api"
