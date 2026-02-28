@@ -136,3 +136,64 @@ class HealthBarDetector:
         self.last_confidence = best_confidence
         logger.trace("Health bar structural confidence: {:.3f}", best_confidence)
         return best_confidence >= 0.3
+
+    def count_bars(self, frame: np.ndarray | None) -> int:
+        """Count distinct boss health bars in the frame.
+
+        Uses red-channel contour detection to find wide horizontal bars.
+        Designed for the expanded DOUBLE_BOSS_BAR_REGION.
+
+        Args:
+            frame: BGR numpy array from screen capture.
+
+        Returns:
+            Number of distinct health bars found (0, 1, or 2).
+        """
+        if frame is None or frame.size == 0:
+            return 0
+
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+        # Red in HSV wraps around 0/180
+        mask1 = cv2.inRange(hsv, np.array([0, 40, 40]), np.array([12, 255, 255]))
+        mask2 = cv2.inRange(hsv, np.array([168, 40, 40]), np.array([180, 255, 255]))
+        red_mask = mask1 | mask2
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 3))
+        red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_CLOSE, kernel)
+
+        contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        frame_h, frame_w = frame.shape[:2]
+        min_width = frame_w * 0.2
+
+        bars: list[tuple[int, int, int, int]] = []
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if h == 0:
+                continue
+            aspect_ratio = w / h
+            if w >= min_width and aspect_ratio >= 8:
+                bars.append((x, y, w, h))
+
+        if len(bars) <= 1:
+            return len(bars)
+
+        # Merge bars that overlap vertically (same bar split by damage)
+        bars.sort(key=lambda b: b[1])  # sort by y
+        merged: list[tuple[int, int, int, int]] = [bars[0]]
+        for bar in bars[1:]:
+            prev = merged[-1]
+            prev_bottom = prev[1] + prev[3]
+            # If this bar's top is within 20px of previous bar's bottom, merge
+            if bar[1] - prev_bottom < 20:
+                # Extend previous bar
+                new_y = prev[1]
+                new_h = (bar[1] + bar[3]) - new_y
+                merged[-1] = (prev[0], new_y, max(prev[2], bar[2]), new_h)
+            else:
+                merged.append(bar)
+
+        count = min(len(merged), 2)
+        logger.debug("count_bars: found {} bars (raw contours: {})", count, len(bars))
+        return count

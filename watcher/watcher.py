@@ -17,7 +17,7 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from watcher.capture import ScreenCapture, BOSS_BAR_REGION, BOSS_NAME_REGION, YOU_DIED_REGION, COOP_REGION
+from watcher.capture import ScreenCapture, BOSS_BAR_REGION, DOUBLE_BOSS_BAR_REGION, BOSS_NAME_REGION, YOU_DIED_REGION, COOP_REGION
 from watcher.config import Config
 from watcher.paths import asset_path
 from watcher.detectors.health_bar import HealthBarDetector
@@ -268,21 +268,52 @@ class Watcher:
                 and self._fsm.state == FightState.ENCOUNTER_PENDING
                 and self._current_boss_name is None
             ):
-                # Crop name area from the bar frame (top portion, above health bar)
-                # BOSS_BAR_REGION now starts at y=0.77, name text is at ~0.775-0.815
-                # which is roughly the top 40% of the combined region
+                # Check for double boss fight (two health bars stacked)
+                double_bar_frame = self._capture.crop_region(full_frame, DOUBLE_BOSS_BAR_REGION)
+                bar_count = self._health_bar.count_bars(double_bar_frame)
+
                 detected_name = None
                 boss_name_frame = None
-                if boss_bar_frame is not None:
-                    bar_h = boss_bar_frame.shape[0]
-                    name_bottom = int(bar_h * 0.45)  # top 45% = name area
-                    boss_name_frame = boss_bar_frame[:name_bottom, :]
-                    detected_name = self._boss_name.detect(boss_name_frame)
-                if detected_name is None and boss_bar_frame is not None:
-                    detected_name = self._boss_name.detect(boss_bar_frame)
+
+                if bar_count >= 2 and double_bar_frame is not None:
+                    # Double boss: split expanded region into top/bottom halves
+                    # and OCR each half for separate boss names
+                    dh = double_bar_frame.shape[0]
+                    top_half = double_bar_frame[:dh // 2, :]
+                    bottom_half = double_bar_frame[dh // 2:, :]
+
+                    name1 = self._boss_name.detect(top_half)
+                    fallback1 = self._boss_name.last_was_fallback
+                    name2 = self._boss_name.detect(bottom_half)
+                    fallback2 = self._boss_name.last_was_fallback
+
+                    if name1 and name2 and name1 != name2:
+                        detected_name = f"{name1} & {name2}"
+                        self._current_boss_is_fallback = fallback1 or fallback2
+                        logger.info("Double boss identified: {} & {}", name1, name2)
+                    elif name1:
+                        detected_name = name1
+                        self._current_boss_is_fallback = fallback1
+                        logger.info("Double boss region but only one name: {}", name1)
+                    elif name2:
+                        detected_name = name2
+                        self._current_boss_is_fallback = fallback2
+                        logger.info("Double boss region but only one name: {}", name2)
+
+                if detected_name is None:
+                    # Single boss (or double boss OCR failed): use normal region
+                    if boss_bar_frame is not None:
+                        bar_h = boss_bar_frame.shape[0]
+                        name_bottom = int(bar_h * 0.45)  # top 45% = name area
+                        boss_name_frame = boss_bar_frame[:name_bottom, :]
+                        detected_name = self._boss_name.detect(boss_name_frame)
+                    if detected_name is None and boss_bar_frame is not None:
+                        detected_name = self._boss_name.detect(boss_bar_frame)
+
                 if detected_name:
                     self._current_boss_name = detected_name
-                    self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                    if bar_count < 2:
+                        self._current_boss_is_fallback = self._boss_name.last_was_fallback
                     boss_name = detected_name
                     logger.info("Boss identified: {}{}", detected_name,
                                 " (OCR fallback)" if self._current_boss_is_fallback else "")
@@ -304,7 +335,8 @@ class Watcher:
                             cv2.imwrite(str(dbg_dir / f"{ts}_name_region.png"), boss_name_frame)
                         if boss_bar_frame is not None:
                             cv2.imwrite(str(dbg_dir / f"{ts}_bar_region.png"), boss_bar_frame)
-                        # Save actual OCR input frame and preprocessed images
+                        if bar_count >= 2 and double_bar_frame is not None:
+                            cv2.imwrite(str(dbg_dir / f"{ts}_double_bar_region.png"), double_bar_frame)
                         if hasattr(self._boss_name, "_last_input_frame"):
                             cv2.imwrite(
                                 str(dbg_dir / f"{ts}_ocr_input.png"),
