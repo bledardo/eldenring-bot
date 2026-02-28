@@ -361,12 +361,29 @@ class BossNameDetector:
 
         # Fallback: pick the cleanest OCR text across all strategies
         # so the boss is tracked even if not in the canonical list.
-        # Stricter than _clean_ocr_text — must look like a real boss name.
+        # Stricter than _clean_ocr_text — must look like a real boss name
+        # AND have a minimum fuzzy proximity to at least one known boss
+        # (rejects total garbage like "WOT ARES TRON 7l").
+        min_fallback_proximity = 45  # must vaguely resemble a real boss
         best_cleaned: str | None = None
         best_alpha = 0
         for raw in all_raw_texts:
             cleaned = self._clean_ocr_text(raw)
             if cleaned and self._looks_like_boss_name(cleaned):
+                # Check fuzzy proximity to any known boss
+                if fuzz is not None and rfprocess is not None and self._boss_names:
+                    best_match = rfprocess.extractOne(
+                        cleaned, self._boss_names, scorer=fuzz.token_set_ratio,
+                    )
+                    if not best_match or best_match[1] < min_fallback_proximity:
+                        logger.debug(
+                            "OCR fallback rejected — too far from any known boss: "
+                            "'{}' (best: '{}', score={})",
+                            cleaned,
+                            best_match[0] if best_match else "?",
+                            int(best_match[1]) if best_match else 0,
+                        )
+                        continue
                 alpha = sum(1 for c in cleaned if c.isalpha())
                 if alpha > best_alpha:
                     best_alpha = alpha

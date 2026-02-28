@@ -57,6 +57,7 @@ class BossFightFSM:
         self.encounter_confirm_frames = encounter_confirm_frames
         self.cooldown_duration = cooldown_duration
         self.bar_gone_grace: float = 1.5  # seconds to wait before resolving (death detector needs time)
+        self.resolve_timeout: float = 90.0  # seconds before auto-abandoning a resolving fight
 
         # Internal tracking
         self._confirm_count: int = 0
@@ -161,9 +162,16 @@ class BossFightFSM:
             if self._bar_gone_start is None:
                 self._bar_gone_start = now
             elif now - self._bar_gone_start > self.bar_gone_grace:
-                self._resolution_start = now
                 self._bar_gone_start = None
-                self._transition_to(FightState.FIGHT_RESOLVING)
+                # "Unknown Boss" = OCR failed → likely false positive, skip resolving
+                if self._current_boss == "Unknown Boss":
+                    logger.info("Bar gone + Unknown Boss — abandoning (likely false positive)")
+                    self._on_abandon("Unknown Boss")
+                    self._cooldown_start = now
+                    self._transition_to(FightState.COOLDOWN)
+                else:
+                    self._resolution_start = now
+                    self._transition_to(FightState.FIGHT_RESOLVING)
 
         else:
             # Bar still present — reset grace timer
@@ -174,11 +182,12 @@ class BossFightFSM:
     ) -> None:
         """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome.
 
-        No timeout — stays in this state until a positive signal:
+        Stays in this state until a positive signal or timeout:
         - Kill text detected → kill
         - Death text detected → death
         - Boss bar reappears → back to active fight (multi-phase)
-        Abandon is only triggered externally (session end or new encounter).
+        - Timeout (resolve_timeout) → auto-abandon (prevents stuck state)
+        Abandon is also triggered externally (session end or new encounter).
         """
         if death_detected:
             # Death detected during resolution
@@ -206,9 +215,21 @@ class BossFightFSM:
             self._transition_to(FightState.ACTIVE_FIGHT)
             return
 
-        # Log elapsed time periodically for visibility
+        # Auto-abandon after timeout to prevent stuck state
+        # (e.g. false positive health bar with garbage OCR)
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
+            if elapsed >= self.resolve_timeout:
+                boss = self._current_boss or "Unknown Boss"
+                logger.warning(
+                    "Resolve timeout ({:.0f}s) — auto-abandoning fight with {}",
+                    self.resolve_timeout, boss,
+                )
+                self._on_abandon(boss)
+                self._cooldown_start = now
+                self._resolution_start = None
+                self._transition_to(FightState.COOLDOWN)
+                return
             if int(elapsed) % 30 == 0 and int(elapsed) > 0:
                 logger.debug("Still resolving for {} ({:.0f}s)...", self._current_boss, elapsed)
 
