@@ -135,6 +135,11 @@ class Watcher:
         self._kill_screenshot: str | None = None  # base64-encoded PNG
         self._encounter_screenshot: str | None = None  # base64-encoded PNG for embed
         self._unknown_boss_logged: bool = False  # log "boss non reconnu" only once
+        self._last_debug_screenshot_time: float = 0.0
+        self._resolve_log_count: int = 0
+        self._resolving_debug_count: int = 0
+        self._resolving_gold_saved: bool = False
+        self._current_boss_is_fallback: bool = False
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
@@ -171,213 +176,228 @@ class Watcher:
     def _detection_loop(self) -> None:
         """Main loop running at target_fps."""
         frame_interval = 1.0 / self._config.capture_fps
+        last_heartbeat = time.time()
+        none_frame_count = 0
 
         while self._running:
-            frame_start = time.perf_counter()
+            try:
+                frame_start = time.perf_counter()
 
-            # Check game focus — skip detection when unfocused to avoid
-            # false positives from stale/transitional frames (e.g. alt-tab).
-            focused = _is_game_focused(self._game_hwnd)
-            if not focused and not self._was_paused:
-                logger.info("Game lost focus — pausing detection")
-                self._was_paused = True
-                self._you_died._confirmer.reset()
-                self._health_bar._confirmer.reset()
-                self._enemy_felled.reset()
-            elif focused and self._was_paused:
-                logger.info("Game regained focus")
-                self._was_paused = False
-                self._tray.set_status(TrayStatus.WATCHING)
+                # Check game focus — skip detection when unfocused to avoid
+                # false positives from stale/transitional frames (e.g. alt-tab).
+                focused = _is_game_focused(self._game_hwnd)
+                if not focused and not self._was_paused:
+                    logger.info("Game lost focus — pausing detection")
+                    self._was_paused = True
+                    self._you_died._confirmer.reset()
+                    self._health_bar._confirmer.reset()
+                    self._enemy_felled.reset()
+                elif focused and self._was_paused:
+                    logger.info("Game regained focus")
+                    self._was_paused = False
+                    self._tray.set_status(TrayStatus.WATCHING)
 
-            if self._was_paused:
-                # Sleep briefly and skip detection while game is unfocused
-                time.sleep(frame_interval)
-                continue
+                if self._was_paused:
+                    # Sleep briefly and skip detection while game is unfocused
+                    time.sleep(frame_interval)
+                    continue
 
-            # Single full-screen capture per frame — BetterCam can fail
-            # when grab() is called multiple times in quick succession.
-            full_frame = self._capture.grab_full()
-            if full_frame is None:
-                time.sleep(frame_interval)
-                continue
+                # Single full-screen capture per frame — BetterCam can fail
+                # when grab() is called multiple times in quick succession.
+                full_frame = self._capture.grab_full()
+                if full_frame is None:
+                    none_frame_count += 1
+                    time.sleep(frame_interval)
+                    continue
 
-            # Store current frame for use by FSM callbacks
-            self._current_frame = full_frame
+                # Store current frame for use by FSM callbacks
+                self._current_frame = full_frame
 
-            # Crop all needed regions from the single capture
-            boss_bar_frame = self._capture.crop_region(full_frame, BOSS_BAR_REGION)
-            you_died_frame = self._capture.crop_region(full_frame, YOU_DIED_REGION)
+                # Crop all needed regions from the single capture
+                boss_bar_frame = self._capture.crop_region(full_frame, BOSS_BAR_REGION)
+                you_died_frame = self._capture.crop_region(full_frame, YOU_DIED_REGION)
 
-            # Run health bar detector
-            bar_detected = self._health_bar.detect(boss_bar_frame)
+                # Run health bar detector
+                bar_detected = self._health_bar.detect(boss_bar_frame)
 
-            # Run death detector in all states (boss fights + global deaths)
-            death_detected = self._you_died.detect(you_died_frame, in_combat=False)
+                # Run death detector in all states (boss fights + global deaths)
+                death_detected = self._you_died.detect(you_died_frame, in_combat=False)
 
-            # Global death: YOU DIED detected outside a boss fight
-            if death_detected and self._fsm.state not in (
-                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING, FightState.COOLDOWN,
-            ):
-                self._on_global_death()
+                # Global death: YOU DIED detected outside a boss fight
+                if death_detected and self._fsm.state not in (
+                    FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING, FightState.COOLDOWN,
+                ):
+                    self._on_global_death()
 
-            # Run kill confirmation detector (wider region to capture all text variants)
-            kill_detected = False
-            if self._fsm.state in (
-                FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
-            ):
-                kill_text_frame = self._capture.crop_region(full_frame, KILL_TEXT_REGION)
-                kill_detected = self._enemy_felled.detect(kill_text_frame)
-                if kill_detected:
-                    _, png_buf = cv2.imencode(".png", full_frame)
-                    self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
-                    logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
-                # Log kill confidence during resolving for diagnosis (DEBUG to avoid spam)
-                if self._fsm.state == FightState.FIGHT_RESOLVING:
-                    conf = self._enemy_felled.last_confidence
-                    self._resolve_log_count += 1
-                    if self._resolve_log_count % 10 == 1:
-                        logger.debug(
-                            "Kill detection resolving — confidence: {:.3f} (threshold: {:.2f})",
-                            conf, self._enemy_felled._threshold,
-                        )
-                    # Save debug frames: first frame + when gold content detected
-                    # (captures actual kill text for diagnosis, not arbitrary intervals)
-                    self._resolving_debug_count += 1
-                    should_save = False
-                    if self._resolving_debug_count == 1:
-                        should_save = True  # Always save first frame as reference
-                    elif conf >= 0.3 and not self._resolving_gold_saved:
-                        should_save = True  # Save when confidence is notable (likely kill text)
-                        self._resolving_gold_saved = True
-                    if should_save:
-                        dbg_dir = self._config.data_dir / "screenshots"
-                        dbg_dir.mkdir(parents=True, exist_ok=True)
-                        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), kill_text_frame)
-                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_full.png"), full_frame)
-                        logger.debug("Kill debug screenshot saved (conf={:.3f}, frame #{})", conf, self._resolving_debug_count)
-
-            # Co-op detection disabled — structural fallback has too many false positives
-            # TODO: re-enable when a proper coop_template is available
-            # if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
-            #     coop_frame = self._capture.crop_region(full_frame, COOP_REGION)
-            #     self._coop_detected = self._coop.detect(coop_frame)
-
-            # Run OCR once per encounter (when health bar first confirmed)
-            boss_name = self._current_boss_name
-            if (
-                bar_detected
-                and self._fsm.state == FightState.ENCOUNTER_PENDING
-                and self._current_boss_name is None
-            ):
-                # Check for double boss fight (two health bars stacked)
-                double_bar_frame = self._capture.crop_region(full_frame, DOUBLE_BOSS_BAR_REGION)
-                bar_count = self._health_bar.count_bars(double_bar_frame)
-
-                detected_name = None
-                boss_name_frame = None
-
-                if bar_count >= 2 and double_bar_frame is not None:
-                    # Double boss: split expanded region into top/bottom halves
-                    # and OCR each half for separate boss names
-                    dh = double_bar_frame.shape[0]
-                    top_half = double_bar_frame[:dh // 2, :]
-                    bottom_half = double_bar_frame[dh // 2:, :]
-
-                    name1 = self._boss_name.detect(top_half)
-                    fallback1 = self._boss_name.last_was_fallback
-                    name2 = self._boss_name.detect(bottom_half)
-                    fallback2 = self._boss_name.last_was_fallback
-
-                    if name1 and name2 and name1 != name2:
-                        detected_name = f"{name1} & {name2}"
-                        self._current_boss_is_fallback = fallback1 or fallback2
-                        logger.info("Double boss identified: {} & {}", name1, name2)
-                    elif name1:
-                        detected_name = name1
-                        self._current_boss_is_fallback = fallback1
-                        logger.info("Double boss region but only one name: {}", name1)
-                    elif name2:
-                        detected_name = name2
-                        self._current_boss_is_fallback = fallback2
-                        logger.info("Double boss region but only one name: {}", name2)
-
-                if detected_name is None:
-                    # Single boss (or double boss OCR failed): use normal region
-                    if boss_bar_frame is not None:
-                        bar_h = boss_bar_frame.shape[0]
-                        name_bottom = int(bar_h * 0.45)  # top 45% = name area
-                        boss_name_frame = boss_bar_frame[:name_bottom, :]
-                        detected_name = self._boss_name.detect(boss_name_frame)
-                    if detected_name is None and boss_bar_frame is not None:
-                        detected_name = self._boss_name.detect(boss_bar_frame)
-
-                if detected_name:
-                    self._current_boss_name = detected_name
-                    if bar_count < 2:
-                        self._current_boss_is_fallback = self._boss_name.last_was_fallback
-                    boss_name = detected_name
-                    logger.info("Boss identified: {}{}", detected_name,
-                                " (OCR fallback)" if self._current_boss_is_fallback else "")
-                    # Save encounter screenshot
-                    if self._config.debug_screenshots:
-                        self._save_debug_screenshot(bar_detected, False)
-                else:
-                    logger.warning(
-                        "OCR failed (raw='{}', score={})",
-                        self._boss_name.last_raw_ocr,
-                        self._boss_name.last_match_score,
-                    )
-                    # Save debug frames for diagnosis
-                    if self._config.debug_screenshots:
-                        dbg_dir = self._config.data_dir / "screenshots"
-                        dbg_dir.mkdir(parents=True, exist_ok=True)
-                        ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                        if boss_name_frame is not None:
-                            cv2.imwrite(str(dbg_dir / f"{ts}_name_region.png"), boss_name_frame)
-                        if boss_bar_frame is not None:
-                            cv2.imwrite(str(dbg_dir / f"{ts}_bar_region.png"), boss_bar_frame)
-                        if bar_count >= 2 and double_bar_frame is not None:
-                            cv2.imwrite(str(dbg_dir / f"{ts}_double_bar_region.png"), double_bar_frame)
-                        if hasattr(self._boss_name, "_last_input_frame"):
-                            cv2.imwrite(
-                                str(dbg_dir / f"{ts}_ocr_input.png"),
-                                self._boss_name._last_input_frame,
+                # Run kill confirmation detector (wider region to capture all text variants)
+                kill_detected = False
+                if self._fsm.state in (
+                    FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
+                ):
+                    kill_text_frame = self._capture.crop_region(full_frame, KILL_TEXT_REGION)
+                    kill_detected = self._enemy_felled.detect(kill_text_frame)
+                    if kill_detected:
+                        _, png_buf = cv2.imencode(".png", full_frame)
+                        self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
+                        logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
+                    # Log kill confidence during resolving for diagnosis (DEBUG to avoid spam)
+                    if self._fsm.state == FightState.FIGHT_RESOLVING:
+                        conf = self._enemy_felled.last_confidence
+                        self._resolve_log_count += 1
+                        if self._resolve_log_count % 10 == 1:
+                            logger.debug(
+                                "Kill detection resolving — confidence: {:.3f} (threshold: {:.2f})",
+                                conf, self._enemy_felled._threshold,
                             )
-                        if hasattr(self._boss_name, "_last_debug_frames"):
-                            for label, img in self._boss_name._last_debug_frames.items():
+                        # Save debug frames: first frame + when gold content detected
+                        # (captures actual kill text for diagnosis, not arbitrary intervals)
+                        self._resolving_debug_count += 1
+                        should_save = False
+                        if self._resolving_debug_count == 1:
+                            should_save = True  # Always save first frame as reference
+                        elif conf >= 0.3 and not self._resolving_gold_saved:
+                            should_save = True  # Save when confidence is notable (likely kill text)
+                            self._resolving_gold_saved = True
+                        if should_save:
+                            dbg_dir = self._config.data_dir / "screenshots"
+                            dbg_dir.mkdir(parents=True, exist_ok=True)
+                            ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                            cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), kill_text_frame)
+                            cv2.imwrite(str(dbg_dir / f"{ts}_kill_full.png"), full_frame)
+                            logger.debug("Kill debug screenshot saved (conf={:.3f}, frame #{})", conf, self._resolving_debug_count)
+
+                # Co-op detection disabled — structural fallback has too many false positives
+                # TODO: re-enable when a proper coop_template is available
+                # if bar_detected and self._fsm.state == FightState.ENCOUNTER_PENDING:
+                #     coop_frame = self._capture.crop_region(full_frame, COOP_REGION)
+                #     self._coop_detected = self._coop.detect(coop_frame)
+
+                # Run OCR once per encounter (when health bar first confirmed)
+                boss_name = self._current_boss_name
+                if (
+                    bar_detected
+                    and self._fsm.state == FightState.ENCOUNTER_PENDING
+                    and self._current_boss_name is None
+                ):
+                    # Check for double boss fight (two health bars stacked)
+                    double_bar_frame = self._capture.crop_region(full_frame, DOUBLE_BOSS_BAR_REGION)
+                    bar_count = self._health_bar.count_bars(double_bar_frame)
+
+                    detected_name = None
+                    boss_name_frame = None
+
+                    if bar_count >= 2 and double_bar_frame is not None:
+                        # Double boss: split expanded region into top/bottom halves
+                        # and OCR each half for separate boss names
+                        dh = double_bar_frame.shape[0]
+                        top_half = double_bar_frame[:dh // 2, :]
+                        bottom_half = double_bar_frame[dh // 2:, :]
+
+                        name1 = self._boss_name.detect(top_half)
+                        fallback1 = self._boss_name.last_was_fallback
+                        name2 = self._boss_name.detect(bottom_half)
+                        fallback2 = self._boss_name.last_was_fallback
+
+                        if name1 and name2 and name1 != name2:
+                            detected_name = f"{name1} & {name2}"
+                            self._current_boss_is_fallback = fallback1 or fallback2
+                            logger.info("Double boss identified: {} & {}", name1, name2)
+                        elif name1:
+                            detected_name = name1
+                            self._current_boss_is_fallback = fallback1
+                            logger.info("Double boss region but only one name: {}", name1)
+                        elif name2:
+                            detected_name = name2
+                            self._current_boss_is_fallback = fallback2
+                            logger.info("Double boss region but only one name: {}", name2)
+
+                    if detected_name is None:
+                        # Single boss (or double boss OCR failed): use normal region
+                        if boss_bar_frame is not None:
+                            bar_h = boss_bar_frame.shape[0]
+                            name_bottom = int(bar_h * 0.45)  # top 45% = name area
+                            boss_name_frame = boss_bar_frame[:name_bottom, :]
+                            detected_name = self._boss_name.detect(boss_name_frame)
+                        if detected_name is None and boss_bar_frame is not None:
+                            detected_name = self._boss_name.detect(boss_bar_frame)
+
+                    if detected_name:
+                        self._current_boss_name = detected_name
+                        if bar_count < 2:
+                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                        boss_name = detected_name
+                        logger.info("Boss identified: {}{}", detected_name,
+                                    " (OCR fallback)" if self._current_boss_is_fallback else "")
+                        # Save encounter screenshot
+                        if self._config.debug_screenshots:
+                            self._save_debug_screenshot(bar_detected, False)
+                    else:
+                        logger.warning(
+                            "OCR failed (raw='{}', score={})",
+                            self._boss_name.last_raw_ocr,
+                            self._boss_name.last_match_score,
+                        )
+                        # Save debug frames for diagnosis
+                        if self._config.debug_screenshots:
+                            dbg_dir = self._config.data_dir / "screenshots"
+                            dbg_dir.mkdir(parents=True, exist_ok=True)
+                            ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                            if boss_name_frame is not None:
+                                cv2.imwrite(str(dbg_dir / f"{ts}_name_region.png"), boss_name_frame)
+                            if boss_bar_frame is not None:
+                                cv2.imwrite(str(dbg_dir / f"{ts}_bar_region.png"), boss_bar_frame)
+                            if bar_count >= 2 and double_bar_frame is not None:
+                                cv2.imwrite(str(dbg_dir / f"{ts}_double_bar_region.png"), double_bar_frame)
+                            if hasattr(self._boss_name, "_last_input_frame"):
                                 cv2.imwrite(
-                                    str(dbg_dir / f"{ts}_preproc_{label}.png"), img,
+                                    str(dbg_dir / f"{ts}_ocr_input.png"),
+                                    self._boss_name._last_input_frame,
                                 )
+                            if hasattr(self._boss_name, "_last_debug_frames"):
+                                for label, img in self._boss_name._last_debug_frames.items():
+                                    cv2.imwrite(
+                                        str(dbg_dir / f"{ts}_preproc_{label}.png"), img,
+                                    )
 
-            # Feed FSM
-            self._fsm.process_frame(
-                boss_bar_detected=bar_detected,
-                boss_name=boss_name,
-                death_detected=death_detected,
-                kill_detected=kill_detected,
-            )
+                # Feed FSM
+                self._fsm.process_frame(
+                    boss_bar_detected=bar_detected,
+                    boss_name=boss_name,
+                    death_detected=death_detected,
+                    kill_detected=kill_detected,
+                )
 
-            # Debug screenshots on detection triggers
-            if self._config.debug_screenshots:
-                self._save_debug_screenshot(bar_detected, death_detected, full_frame)
+                # Debug screenshots on detection triggers
+                if self._config.debug_screenshots:
+                    self._save_debug_screenshot(bar_detected, death_detected, full_frame)
 
-            # Periodic queue flush (every ~30s)
-            now = time.time()
-            if now - self._last_flush_time > 30.0:
-                self._last_flush_time = now
-                threading.Thread(
-                    target=self._http_client.flush_queue,
-                    daemon=True,
-                ).start()
+                # Periodic queue flush (every ~30s)
+                now = time.time()
+                if now - self._last_flush_time > 30.0:
+                    self._last_flush_time = now
+                    threading.Thread(
+                        target=self._http_client.flush_queue,
+                        daemon=True,
+                    ).start()
 
-            # Frame pacing
-            elapsed = time.perf_counter() - frame_start
-            sleep_time = frame_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+                # Frame pacing
+                elapsed = time.perf_counter() - frame_start
+                sleep_time = frame_interval - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
 
-            logger.trace("Frame: {:.1f}ms (target: {:.1f}ms)", elapsed * 1000, frame_interval * 1000)
+                logger.trace("Frame: {:.1f}ms (target: {:.1f}ms)", elapsed * 1000, frame_interval * 1000)
+
+                # Heartbeat: log every 60s to prove the loop is alive
+                now_hb = time.time()
+                if now_hb - last_heartbeat >= 60.0:
+                    logger.debug("Heartbeat: alive, state={}, frames_null={}", self._fsm.state.name, none_frame_count)
+                    last_heartbeat = now_hb
+                    none_frame_count = 0
+
+            except Exception:
+                logger.opt(exception=True).error("Detection loop error")
+                time.sleep(1.0)  # Avoid tight error loop
 
     def _on_encounter(self, boss_name: str) -> None:
         """FSM callback: boss encounter confirmed."""
@@ -512,6 +532,8 @@ class Watcher:
     ) -> None:
         """Save debug screenshots on detection triggers.
 
+        Rate-limited to max 1 per 2 seconds to avoid I/O thrashing.
+
         Args:
             bar_detected: Whether the boss health bar is visible.
             death_detected: Whether death text is visible.
@@ -519,6 +541,11 @@ class Watcher:
         """
         if not (bar_detected or death_detected):
             return
+
+        now = time.time()
+        if now - self._last_debug_screenshot_time < 2.0:
+            return
+        self._last_debug_screenshot_time = now
 
         screenshot_dir = self._config.data_dir / "screenshots"
         screenshot_dir.mkdir(parents=True, exist_ok=True)

@@ -153,6 +153,9 @@ def main() -> None:
                 http_client.flush_queue()
             except Exception as exc:
                 logger.debug("Queue flush error: {}", exc)
+            # Check watcher thread health
+            if watcher_thread is not None and not watcher_thread.is_alive():
+                logger.error("Watcher thread died unexpectedly!")
             # Sleep in small increments to respond to shutdown
             for _ in range(60):  # 30 seconds (60 * 0.5s)
                 if shutdown_requested:

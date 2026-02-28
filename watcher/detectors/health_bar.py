@@ -112,6 +112,14 @@ class HealthBarDetector:
         mask2 = cv2.inRange(hsv, np.array([168, 40, 40]), np.array([180, 255, 255]))
         red_mask = mask1 | mask2
 
+        # Pre-filter: reject if red covers too much of the frame (not a bar,
+        # just a reddish scene like golden Erdtree particles). Real boss bars
+        # are <8% red; golden particle false positives are ~44%.
+        red_pixel_ratio = np.count_nonzero(red_mask) / red_mask.size
+        if red_pixel_ratio > 0.20:
+            self.last_confidence = 0.0
+            return False
+
         # Close small gaps in the bar
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 3))
         red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_CLOSE, kernel)
@@ -128,13 +136,22 @@ class HealthBarDetector:
                 continue
             aspect_ratio = w / h
 
-            # Health bar: wide, thin, high aspect ratio
-            if w >= min_width and aspect_ratio >= 8:
+            # Health bar: wide, thin, high aspect ratio.
+            # Max height rejects tall UI elements (menus, text) that happen
+            # to be red — real boss bars are very thin (<15% of crop height).
+            max_height = max(frame_h * 0.15, 15)
+            if w >= min_width and aspect_ratio >= 8 and h <= max_height:
                 confidence = min(1.0, (w / frame_w) * (aspect_ratio / 20))
                 best_confidence = max(best_confidence, confidence)
 
         self.last_confidence = best_confidence
-        logger.trace("Health bar structural confidence: {:.3f}", best_confidence)
+        if best_confidence >= 0.3:
+            logger.debug(
+                "Structural bar detected: confidence={:.3f}, red_ratio={:.1%}",
+                best_confidence, red_pixel_ratio,
+            )
+        else:
+            logger.trace("Health bar structural confidence: {:.3f}", best_confidence)
         return best_confidence >= 0.3
 
     def count_bars(self, frame: np.ndarray | None) -> int:
