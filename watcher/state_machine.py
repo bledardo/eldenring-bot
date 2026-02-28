@@ -177,6 +177,25 @@ class BossFightFSM:
             # Bar still present — reset grace timer
             self._bar_gone_start = None
 
+    @staticmethod
+    def _is_valid_boss_name(name: str | None) -> bool:
+        """Check if a boss name is valid (not None, not Unknown, not garbage OCR).
+
+        A valid name contains no digits, is not all-caps, and has at least
+        one capitalized word of 4+ chars.
+        """
+        if not name or name == "Unknown Boss":
+            return False
+        # Digits → garbage OCR
+        if any(c.isdigit() for c in name):
+            return False
+        # Too many ALL-CAPS tokens → garbage OCR
+        tokens = name.split()
+        all_caps_tokens = sum(1 for t in tokens if len(t) >= 3 and t == t.upper())
+        if all_caps_tokens >= 2:
+            return False
+        return True
+
     def _handle_fight_resolving(
         self, boss_bar_detected: bool, death_detected: bool, kill_detected: bool, now: float
     ) -> None:
@@ -209,21 +228,28 @@ class BossFightFSM:
             return
 
         if boss_bar_detected:
-            # Bar reappeared — could be multi-phase or new encounter
-            logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
-            self._resolution_start = None
-            self._transition_to(FightState.ACTIVE_FIGHT)
+            # Only accept bar reappearance if we have a valid boss name
+            # (prevents false positive structural detection from looping)
+            if self._is_valid_boss_name(self._current_boss):
+                logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
+                self._resolution_start = None
+                self._transition_to(FightState.ACTIVE_FIGHT)
+            else:
+                logger.debug("Bar reappeared but boss unknown/garbage — staying in resolving")
             return
 
         # Auto-abandon after timeout to prevent stuck state
-        # (e.g. false positive health bar with garbage OCR)
+        # Shorter timeout for garbage OCR names — real kill text appears within 5s
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
-            if elapsed >= self.resolve_timeout:
+            effective_timeout = self.resolve_timeout  # 90s default
+            if self._current_boss and not self._is_valid_boss_name(self._current_boss):
+                effective_timeout = 15.0
+            if elapsed >= effective_timeout:
                 boss = self._current_boss or "Unknown Boss"
                 logger.warning(
                     "Resolve timeout ({:.0f}s) — auto-abandoning fight with {}",
-                    self.resolve_timeout, boss,
+                    effective_timeout, boss,
                 )
                 self._on_abandon(boss)
                 self._cooldown_start = now

@@ -1,10 +1,12 @@
 """Kill confirmation via template matching on gold-channel extraction.
 
-The game displays "ENNEMI ABATTU" / "DEMI-DIEU ABATTU" / "ENEMY FELLED"
-in gold text. We match on "ABATTU" which is common to all French variants.
+The game displays gold text on kill:
+- "ENNEMI ABATTU" / "ENNEMI MAJEUR ABATTU" / "DEMI-DIEU ABATTU"
+- "DIEU OCCIS" (for god/demigod bosses like Elden Beast)
 
+We match on "ABATTU" and "OCCIS" templates to cover all French variants.
 Template matching on gold-channel binary is fast (<1ms) and avoids
-false positives from other gold UI elements (cavalier names, etc.).
+false positives from other gold UI elements.
 """
 
 from __future__ import annotations
@@ -38,20 +40,20 @@ class EnemyFelledDetector:
         self.last_raw_ocr: str | None = None
         self._confirmer = _ResetProxy(self)
 
-        # Load kill text template
-        self._template: np.ndarray | None = None
+        # Load kill text templates (ABATTU + OCCIS to cover all variants)
+        self._templates: list[tuple[str, np.ndarray]] = []
         if template_dir is not None:
-            tmpl_path = template_dir / "abattu.png"
-            if tmpl_path.exists():
-                self._template = cv2.imread(str(tmpl_path), cv2.IMREAD_GRAYSCALE)
-                logger.debug(
-                    "Kill template loaded: {} ({}x{})",
-                    tmpl_path.name,
-                    self._template.shape[1],
-                    self._template.shape[0],
-                )
-            else:
-                logger.warning("Kill template not found: {}", tmpl_path)
+            for name in ("abattu.png", "occis.png"):
+                tmpl_path = template_dir / name
+                if tmpl_path.exists():
+                    tmpl = cv2.imread(str(tmpl_path), cv2.IMREAD_GRAYSCALE)
+                    self._templates.append((name, tmpl))
+                    logger.debug(
+                        "Kill template loaded: {} ({}x{})",
+                        name, tmpl.shape[1], tmpl.shape[0],
+                    )
+                else:
+                    logger.warning("Kill template not found: {}", tmpl_path)
 
     def detect(self, frame: np.ndarray | None) -> bool:
         """Detect if kill text is present via template matching.
@@ -66,7 +68,7 @@ class EnemyFelledDetector:
             self._consecutive_hits = 0
             return False
 
-        if self._template is None:
+        if not self._templates:
             return False
 
         detected = self._template_detect(frame)
@@ -94,7 +96,7 @@ class EnemyFelledDetector:
         return cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
 
     def _template_detect(self, frame: np.ndarray) -> bool:
-        """Template matching on gold-channel binary. Fast (<1ms)."""
+        """Template matching on gold-channel binary. Fast (<1ms per template)."""
         binary = self._preprocess_gold(frame)
 
         # Check if there's any gold content at all
@@ -102,16 +104,21 @@ class EnemyFelledDetector:
         if gold_pixels > 100:
             logger.trace("Gold pixels in frame: {}", gold_pixels)
 
-        result = cv2.matchTemplate(binary, self._template, cv2.TM_CCOEFF_NORMED)
-        _, max_val, _, max_loc = cv2.minMaxLoc(result)
+        # Try each template, return on first match
+        best_val = 0.0
+        for name, tmpl in self._templates:
+            if tmpl.shape[0] > binary.shape[0] or tmpl.shape[1] > binary.shape[1]:
+                continue
+            result = cv2.matchTemplate(binary, tmpl, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, _ = cv2.minMaxLoc(result)
+            if max_val > best_val:
+                best_val = max_val
 
-        self.last_confidence = max_val
+        self.last_confidence = best_val
         if gold_pixels > 500:
             logger.debug("Kill template confidence: {:.3f} (threshold: {:.2f}, gold_px: {})",
-                         max_val, self._threshold, gold_pixels)
-        if max_val >= self._threshold:
-            return True
-        return False
+                         best_val, self._threshold, gold_pixels)
+        return best_val >= self._threshold
 
     def reset(self) -> None:
         """Reset detection state."""

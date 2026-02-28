@@ -17,7 +17,7 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from watcher.capture import ScreenCapture, BOSS_BAR_REGION, DOUBLE_BOSS_BAR_REGION, BOSS_NAME_REGION, YOU_DIED_REGION, COOP_REGION
+from watcher.capture import ScreenCapture, BOSS_BAR_REGION, DOUBLE_BOSS_BAR_REGION, BOSS_NAME_REGION, YOU_DIED_REGION, KILL_TEXT_REGION, COOP_REGION
 from watcher.config import Config
 from watcher.paths import asset_path
 from watcher.detectors.health_bar import HealthBarDetector
@@ -113,7 +113,7 @@ class Watcher:
         self._health_bar = HealthBarDetector(template_dir)
         self._boss_name = BossNameDetector(asset_path("watcher/assets/boss_names.json"))
         self._you_died = YouDiedDetector(template_dir)
-        self._enemy_felled = EnemyFelledDetector(template_dir=template_dir)
+        self._enemy_felled = EnemyFelledDetector(template_dir=template_dir, threshold=0.55)
         self._coop = CoopDetector(template_dir)
 
         # Initialize FSM
@@ -220,40 +220,42 @@ class Watcher:
             ):
                 self._on_global_death()
 
-            # Run kill confirmation detector (same region as death)
+            # Run kill confirmation detector (wider region to capture all text variants)
             kill_detected = False
             if self._fsm.state in (
                 FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING,
             ):
-                kill_detected = self._enemy_felled.detect(you_died_frame)
+                kill_text_frame = self._capture.crop_region(full_frame, KILL_TEXT_REGION)
+                kill_detected = self._enemy_felled.detect(kill_text_frame)
                 if kill_detected:
                     _, png_buf = cv2.imencode(".png", full_frame)
                     self._kill_screenshot = base64.b64encode(png_buf).decode("ascii")
                     logger.info("Kill screenshot captured ({} bytes)", len(self._kill_screenshot))
-                # Log kill confidence during resolving for diagnosis
+                # Log kill confidence during resolving for diagnosis (DEBUG to avoid spam)
                 if self._fsm.state == FightState.FIGHT_RESOLVING:
                     conf = self._enemy_felled.last_confidence
-                    # Log every second (every 10th frame at 10fps)
-                    if not hasattr(self, "_resolve_log_count"):
-                        self._resolve_log_count = 0
                     self._resolve_log_count += 1
                     if self._resolve_log_count % 10 == 1:
-                        logger.info(
+                        logger.debug(
                             "Kill detection resolving — confidence: {:.3f} (threshold: {:.2f})",
-                            conf, 0.65,
+                            conf, self._enemy_felled._threshold,
                         )
-                    # Save debug frames during resolving (first, middle, late)
-                    if not hasattr(self, "_resolving_debug_count"):
-                        self._resolving_debug_count = 0
+                    # Save debug frames: first frame + when gold content detected
+                    # (captures actual kill text for diagnosis, not arbitrary intervals)
                     self._resolving_debug_count += 1
-                    # Save at 0s, 5s, 10s, 15s into resolving (frames 1, 50, 100, 150 at 10fps)
-                    if self._resolving_debug_count in (1, 50, 100, 150):
+                    should_save = False
+                    if self._resolving_debug_count == 1:
+                        should_save = True  # Always save first frame as reference
+                    elif conf >= 0.3 and not self._resolving_gold_saved:
+                        should_save = True  # Save when confidence is notable (likely kill text)
+                        self._resolving_gold_saved = True
+                    if should_save:
                         dbg_dir = self._config.data_dir / "screenshots"
                         dbg_dir.mkdir(parents=True, exist_ok=True)
                         ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), you_died_frame)
+                        cv2.imwrite(str(dbg_dir / f"{ts}_kill_region.png"), kill_text_frame)
                         cv2.imwrite(str(dbg_dir / f"{ts}_kill_full.png"), full_frame)
-                        logger.info("Kill debug screenshot #{} saved to {}", self._resolving_debug_count, dbg_dir)
+                        logger.debug("Kill debug screenshot saved (conf={:.3f}, frame #{})", conf, self._resolving_debug_count)
 
             # Co-op detection disabled — structural fallback has too many false positives
             # TODO: re-enable when a proper coop_template is available
@@ -502,6 +504,7 @@ class Watcher:
         self._encounter_screenshot = None
         self._unknown_boss_logged = False
         self._resolving_debug_count = 0
+        self._resolving_gold_saved = False
         self._resolve_log_count = 0
 
     def _save_debug_screenshot(

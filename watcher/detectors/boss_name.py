@@ -206,10 +206,19 @@ class BossNameDetector:
         - At least one capitalized word ≥4 chars (e.g. "Margit", "Radahn")
         - Not too many words (boss names are ≤8 words)
         - At least 6 total alpha chars
+        - No digits (no boss name contains numbers)
+        - Not ALL CAPS (French boss names use Title Case)
         """
+        # Reject text with digits — no boss name contains numbers
+        if any(c.isdigit() for c in text):
+            return False
         tokens = text.split()
         # Too many words = likely OCR reading UI/subtitles
         if len(tokens) > 8:
+            return False
+        # Reject ALL CAPS tokens — real French boss names use Title Case
+        all_caps_tokens = sum(1 for t in tokens if len(t) >= 3 and t == t.upper())
+        if all_caps_tokens >= 2:
             return False
         # Must have enough total alpha chars
         alpha_total = sum(1 for c in text if c.isalpha())
@@ -364,7 +373,7 @@ class BossNameDetector:
         # Stricter than _clean_ocr_text — must look like a real boss name
         # AND have a minimum fuzzy proximity to at least one known boss
         # (rejects total garbage like "WOT ARES TRON 7l").
-        min_fallback_proximity = 45  # must vaguely resemble a real boss
+        min_fallback_proximity = 55  # must vaguely resemble a real boss
         best_cleaned: str | None = None
         best_alpha = 0
         for raw in all_raw_texts:
