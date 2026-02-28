@@ -18,7 +18,7 @@ from loguru import logger
 from watcher import __version__
 
 # Placeholder — user sets this to their actual repo
-GITHUB_REPO = "OWNER/elden-ring-watcher"
+GITHUB_REPO = "bledardo/eldenring-bot"
 
 CURRENT_VERSION = __version__
 
