@@ -73,7 +73,7 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
         return {
             "version": latest_tag.lstrip("v"),
             "download_url": download_url,
-            "release_notes": data.get("body", "")[:500],
+            "release_notes": (data.get("body") or "")[:500],
         }
 
     except Exception as exc:
