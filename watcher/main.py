@@ -136,7 +136,7 @@ def main() -> None:
         if update_info is not None:
             new_version = update_info["version"]
             tray.notify(f"Mise à jour v{new_version} disponible, téléchargement...")
-            if download_and_replace(update_info["download_url"]):
+            if download_and_replace(update_info["download_url"], update_info.get("expected_size")):
                 # Update batch launched — force-kill the entire process so the
                 # batch script can rename the exe.  sys.exit() is not enough
                 # because non-daemon threads (pystray) keep the process alive.

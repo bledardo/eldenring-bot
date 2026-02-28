@@ -60,9 +60,11 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
 
         # Find .exe asset
         download_url = None
+        expected_size = None
         for asset in data.get("assets", []):
             if asset["name"].endswith(".exe"):
                 download_url = asset["browser_download_url"]
+                expected_size = asset.get("size")
                 break
 
         if download_url is None:
@@ -73,6 +75,7 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
         return {
             "version": latest_tag.lstrip("v"),
             "download_url": download_url,
+            "expected_size": expected_size,
             "release_notes": (data.get("body") or "")[:500],
         }
 
@@ -81,7 +84,7 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
         return None
 
 
-def download_and_replace(download_url: str) -> bool:
+def download_and_replace(download_url: str, expected_size: int | None = None) -> bool:
     """Download new exe and create self-update batch script.
 
     The batch script:
@@ -116,7 +119,16 @@ def download_and_replace(download_url: str) -> bool:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
-        logger.info("Update downloaded to {}", temp_path)
+        # Verify download integrity (size check)
+        actual_size = temp_path.stat().st_size
+        if expected_size is not None and actual_size != expected_size:
+            logger.error(
+                "Download corrupted: expected {} bytes, got {} bytes",
+                expected_size, actual_size,
+            )
+            temp_path.unlink(missing_ok=True)
+            return False
+        logger.info("Update downloaded to {} ({} bytes, verified)", temp_path, actual_size)
 
         current_pid = os.getpid()
 
@@ -167,6 +179,9 @@ if errorlevel 1 (
     ren "{old_path.name}" "{current_exe.name}" >nul 2>&1
     goto CLEANUP_FAIL
 )
+
+echo Unblocking exe (remove Windows download security flag)...
+powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
 echo Update successful, starting new version...
 start "" "{current_exe}"
@@ -225,4 +240,4 @@ def perform_update_if_available() -> bool:
     if update_info["release_notes"]:
         logger.info("Release notes: {}", update_info["release_notes"][:200])
 
-    return download_and_replace(update_info["download_url"])
+    return download_and_replace(update_info["download_url"], update_info.get("expected_size"))
