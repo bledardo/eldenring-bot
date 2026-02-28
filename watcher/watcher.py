@@ -132,6 +132,8 @@ class Watcher:
         self._fight_start_time: float | None = None
         self._last_global_death_time: float = 0.0
         self._kill_screenshot: str | None = None  # base64-encoded PNG
+        self._encounter_screenshot: str | None = None  # base64-encoded PNG for embed
+        self._unknown_boss_logged: bool = False  # log "boss non reconnu" only once
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
@@ -319,17 +321,40 @@ class Watcher:
             return
 
         self._fight_start_time = time.time()
+
+        if boss_name == "Unknown Boss":
+            if not self._unknown_boss_logged:
+                logger.warning("Boss non reconnu — aucun événement ne sera envoyé pour ce combat")
+                self._unknown_boss_logged = True
+            return
+
+        # Capture encounter screenshot for Discord embed fallback
+        try:
+            encounter_frame = self._capture.grab_full()
+            if encounter_frame is not None and isinstance(encounter_frame, np.ndarray):
+                _, png_buf = cv2.imencode(".png", encounter_frame)
+                self._encounter_screenshot = base64.b64encode(png_buf).decode("ascii")
+        except Exception as exc:
+            logger.debug("Failed to capture encounter screenshot: {}", exc)
+
         logger.info("Boss encounter: {}", boss_name)
-        self._http_client.send_event({
+        event = {
             "type": "boss_encounter",
             "event_id": str(uuid.uuid4()),
             "boss_canonical_name": boss_name,
             "session_id": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        }
+        if self._encounter_screenshot:
+            event["screenshot_base64"] = self._encounter_screenshot
+        self._http_client.send_event(event)
 
     def _on_death(self, boss_name: str) -> None:
         """FSM callback: player death."""
+        if boss_name == "Unknown Boss":
+            self._reset_fight_state()
+            return
+
         duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
         logger.info("Player death vs {} ({}s)", boss_name, duration)
         self._http_client.send_event({
@@ -344,6 +369,10 @@ class Watcher:
 
     def _on_kill(self, boss_name: str) -> None:
         """FSM callback: boss killed."""
+        if boss_name == "Unknown Boss":
+            self._reset_fight_state()
+            return
+
         duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
         logger.info("Boss killed: {} ({}s)", boss_name, duration)
         event = {
@@ -361,6 +390,10 @@ class Watcher:
 
     def _on_abandon(self, boss_name: str) -> None:
         """FSM callback: fight abandoned."""
+        if boss_name == "Unknown Boss":
+            self._reset_fight_state()
+            return
+
         duration = int(time.time() - self._fight_start_time) if self._fight_start_time else 0
         logger.info("Fight abandoned: {} ({}s)", boss_name, duration)
         self._http_client.send_event({
@@ -398,6 +431,8 @@ class Watcher:
         self._coop_detected = False
         self._fight_start_time = None
         self._kill_screenshot = None
+        self._encounter_screenshot = None
+        self._unknown_boss_logged = False
 
     def _save_debug_screenshot(self, bar_detected: bool, death_detected: bool) -> None:
         """Save debug screenshots on detection triggers."""
