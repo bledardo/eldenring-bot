@@ -17,7 +17,7 @@ from watcher.logger import setup_logging
 from watcher.paths import configure_tesseract
 from watcher.process_monitor import ProcessMonitor
 from watcher.tray import TrayApp, TrayStatus
-from watcher.updater import perform_update_if_available
+from watcher.updater import check_for_update, download_and_replace
 from watcher.watcher import Watcher
 
 
@@ -115,10 +115,24 @@ def main() -> None:
     # Start tray in background thread
     tray.run_detached()
 
+    # Check if we just updated (version changed since last run)
+    version_file = config.data_dir / ".last_version"
+    last_version = version_file.read_text().strip() if version_file.exists() else None
+    version_file.write_text(__version__)
+
+    if last_version and last_version != __version__:
+        tray.notify(f"Mis à jour : v{last_version} → v{__version__}")
+    else:
+        tray.notify(f"Watcher v{__version__} lancé — en attente d'Elden Ring")
+
     # Auto-update check on startup
     try:
-        if perform_update_if_available():
-            return  # Update initiated — app will restart via batch script
+        update_info = check_for_update()
+        if update_info is not None:
+            new_version = update_info["version"]
+            tray.notify(f"Mise à jour v{new_version} disponible, téléchargement...")
+            if download_and_replace(update_info["download_url"]):
+                return  # Update initiated — app will restart via batch script
     except Exception:
         logger.warning("Auto-update check failed, continuing with current version")
 

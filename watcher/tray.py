@@ -133,6 +133,20 @@ class TrayApp:
         self.icon.run_detached()
         logger.info("Tray icon running (detached)")
 
+    def notify(self, message: str, title: str = "Elden Ring Watcher") -> None:
+        """Show a Windows notification balloon from the tray icon.
+
+        Args:
+            message: Notification body text.
+            title: Notification title.
+        """
+        if self.icon is None:
+            return
+        try:
+            self.icon.notify(message, title)
+        except Exception as exc:
+            logger.debug("Tray notification failed: {}", exc)
+
     def stop(self) -> None:
         """Stop the tray icon."""
         if self.icon is not None:
