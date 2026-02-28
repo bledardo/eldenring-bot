@@ -163,6 +163,7 @@ class Watcher:
     def stop(self) -> None:
         """Stop the detection loop."""
         self._running = False
+        self._fsm.force_abandon()
         self._capture.cleanup()
         self._tray.set_status(TrayStatus.NO_GAME)
         logger.info("Watcher stopped")

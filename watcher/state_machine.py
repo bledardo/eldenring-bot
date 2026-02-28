@@ -35,9 +35,8 @@ class BossFightFSM:
         on_encounter: Callback when encounter is confirmed.
         on_death: Callback when death is detected during fight.
         on_kill: Callback when boss is killed.
-        on_abandon: Callback when fight is abandoned.
+        on_abandon: Callback when fight is abandoned (session end or force_abandon).
         encounter_confirm_frames: Consecutive frames needed to confirm encounter.
-        phase_transition_window: Seconds to wait for bar reappearance before resolution.
         cooldown_duration: Seconds after resolution before accepting new encounters.
     """
 
@@ -48,7 +47,6 @@ class BossFightFSM:
         on_kill: Callable[[str], None],
         on_abandon: Callable[[str], None],
         encounter_confirm_frames: int = 3,
-        phase_transition_window: float = 20.0,
         cooldown_duration: float = 5.0,
     ) -> None:
         self._on_encounter = on_encounter
@@ -57,7 +55,6 @@ class BossFightFSM:
         self._on_abandon = on_abandon
 
         self.encounter_confirm_frames = encounter_confirm_frames
-        self.phase_transition_window = phase_transition_window
         self.cooldown_duration = cooldown_duration
         self.bar_gone_grace: float = 1.5  # seconds to wait before resolving (death detector needs time)
 
@@ -175,7 +172,14 @@ class BossFightFSM:
     def _handle_fight_resolving(
         self, boss_bar_detected: bool, death_detected: bool, kill_detected: bool, now: float
     ) -> None:
-        """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome."""
+        """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome.
+
+        No timeout — stays in this state until a positive signal:
+        - Kill text detected → kill
+        - Death text detected → death
+        - Boss bar reappears → back to active fight (multi-phase)
+        Abandon is only triggered externally (session end or new encounter).
+        """
         if death_detected:
             # Death detected during resolution
             boss = self._current_boss or "Unknown Boss"
@@ -196,23 +200,17 @@ class BossFightFSM:
             return
 
         if boss_bar_detected:
-            # Bar reappeared within window — multi-phase transition
+            # Bar reappeared — could be multi-phase or new encounter
             logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
             self._resolution_start = None
             self._transition_to(FightState.ACTIVE_FIGHT)
             return
 
-        # Check timeout
+        # Log elapsed time periodically for visibility
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
-            if elapsed >= self.phase_transition_window:
-                # Timeout — no kill text seen, resolve as abandon
-                boss = self._current_boss or "Unknown Boss"
-                logger.info("Fight abandoned (bar gone {}s, no kill text): {}", f"{elapsed:.1f}", boss)
-                self._on_abandon(boss)
-                self._cooldown_start = now
-                self._resolution_start = None
-                self._transition_to(FightState.COOLDOWN)
+            if int(elapsed) % 30 == 0 and int(elapsed) > 0:
+                logger.debug("Still resolving for {} ({:.0f}s)...", self._current_boss, elapsed)
 
     def _handle_cooldown(self, now: float) -> None:
         """COOLDOWN: waiting before accepting new encounters."""
@@ -224,6 +222,21 @@ class BossFightFSM:
                 self._current_boss = None
                 self._confirm_count = 0
                 self._transition_to(FightState.IDLE)
+
+    def force_abandon(self) -> None:
+        """Force-abandon the current fight (called on session end / game exit).
+
+        Only acts if there's an active or resolving fight.
+        """
+        if self.state in (FightState.ACTIVE_FIGHT, FightState.FIGHT_RESOLVING):
+            boss = self._current_boss or "Unknown Boss"
+            logger.info("Force-abandoning fight with {} (session end)", boss)
+            self._on_abandon(boss)
+            self._resolution_start = None
+            self._cooldown_start = None
+            self._current_boss = None
+            self._confirm_count = 0
+            self.state = FightState.IDLE
 
     def _transition_to(self, new_state: FightState) -> None:
         """Log and execute state transition."""
