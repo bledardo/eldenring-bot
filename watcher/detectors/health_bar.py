@@ -105,28 +105,45 @@ class HealthBarDetector:
         Isolates red pixels (HSV), then looks for a wide horizontal contour.
         The Elden Ring boss health bar is a long red/dark-red bar.
         """
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        red_mask, red_pixel_ratio = self._extract_red_mask(frame, sat_min=40, val_min=40)
 
-        # Red in HSV wraps around 0/180: H=0-10 or 170-180, S>40, V>40
-        mask1 = cv2.inRange(hsv, np.array([0, 40, 40]), np.array([12, 255, 255]))
-        mask2 = cv2.inRange(hsv, np.array([168, 40, 40]), np.array([180, 255, 255]))
-        red_mask = mask1 | mask2
-
-        # Pre-filter: reject if red covers too much of the frame (not a bar,
-        # just a reddish scene like golden Erdtree particles). Real boss bars
-        # are <8% red; golden particle false positives are ~44%.
-        red_pixel_ratio = np.count_nonzero(red_mask) / red_mask.size
         if red_pixel_ratio > 0.20:
-            self.last_confidence = 0.0
-            return False
+            # Retry with strict HSV to isolate bright red bar from dim red background
+            red_mask, red_pixel_ratio = self._extract_red_mask(frame, sat_min=80, val_min=80)
+            if red_pixel_ratio > 0.45:
+                self.last_confidence = 0.0
+                return False
 
+        return self._find_bar_in_mask(red_mask, frame.shape, red_pixel_ratio)
+
+    def _extract_red_mask(
+        self, frame: np.ndarray, sat_min: int = 40, val_min: int = 40,
+    ) -> tuple[np.ndarray, float]:
+        """Build a binary mask of red pixels in HSV space.
+
+        Returns:
+            Tuple of (mask, red_pixel_ratio).
+        """
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        lo1 = np.array([0, sat_min, val_min])
+        hi1 = np.array([12, 255, 255])
+        lo2 = np.array([168, sat_min, val_min])
+        hi2 = np.array([180, 255, 255])
+        mask = cv2.inRange(hsv, lo1, hi1) | cv2.inRange(hsv, lo2, hi2)
+        ratio = np.count_nonzero(mask) / mask.size
+        return mask, ratio
+
+    def _find_bar_in_mask(
+        self, red_mask: np.ndarray, frame_shape: tuple, red_pixel_ratio: float,
+    ) -> bool:
+        """Search for a health-bar-shaped contour in a red mask."""
         # Close small gaps in the bar
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 3))
         red_mask = cv2.morphologyEx(red_mask, cv2.MORPH_CLOSE, kernel)
 
         contours, _ = cv2.findContours(red_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        frame_h, frame_w = frame.shape[:2]
+        frame_h, frame_w = frame_shape[:2]
         min_width = frame_w * 0.2  # Bar must be at least 20% of frame width
         best_confidence = 0.0
 
