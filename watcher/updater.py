@@ -221,14 +221,24 @@ dir /b "{exe_dir}" >> %LOGFILE% 2>&1
 
 echo [%TIME%] Starting new version... >> %LOGFILE%
 echo Update successful, starting new version...
+
+REM Try launching with retries (Windows Defender may block DLL extraction)
+set LAUNCH_RETRY=0
+:LAUNCH_LOOP
+set /a LAUNCH_RETRY+=1
+echo [%TIME%] Launch attempt %LAUNCH_RETRY%/3... >> %LOGFILE%
 start "" "{current_exe}"
 
-REM Wait and check if the new exe is still running
-timeout /t 5 /nobreak >nul
+timeout /t 8 /nobreak >nul
 tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
 if errorlevel 1 (
-    echo [%TIME%] WARNING: New exe does not appear to be running! It may have crashed. >> %LOGFILE%
-    echo [%TIME%] Check watcher logs for ModuleNotFoundError or ImportError details. >> %LOGFILE%
+    echo [%TIME%] WARNING: New exe not running after attempt %LAUNCH_RETRY% >> %LOGFILE%
+    if %LAUNCH_RETRY% LSS 3 (
+        echo [%TIME%] Retrying in 5s... >> %LOGFILE%
+        timeout /t 5 /nobreak >nul
+        goto LAUNCH_LOOP
+    )
+    echo [%TIME%] FAILED: New exe did not start after 3 attempts >> %LOGFILE%
 ) else (
     echo [%TIME%] New exe is running OK >> %LOGFILE%
 )
