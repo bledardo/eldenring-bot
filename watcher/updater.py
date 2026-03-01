@@ -158,14 +158,24 @@ powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 REM Launch via explorer.exe (simulates double-click, avoids DLL issues)
 explorer.exe "{current_exe}"
 
-timeout /t 5 /nobreak >nul
+REM Wait for new exe to fully start, then clean up all leftovers
+timeout /t 10 /nobreak >nul
 del /f /q "{old_path.name}" >nul 2>&1
+if exist "{old_path.name}" (
+    timeout /t 10 /nobreak >nul
+    del /f /q "{old_path.name}" >nul 2>&1
+)
+del /f /q "{temp_path.name}" >nul 2>&1
+del /f /q "updater_debug.log" >nul 2>&1
+del /f /q "crash_import_error.log" >nul 2>&1
 del /f /q "%~f0" >nul 2>&1
 exit /b 0
 
 :CLEANUP_FAIL
 if exist "{temp_path.name}" del /f /q "{temp_path.name}" >nul 2>&1
 if exist "{current_exe.name}" explorer.exe "{current_exe}"
+del /f /q "updater_debug.log" >nul 2>&1
+del /f /q "crash_import_error.log" >nul 2>&1
 del /f /q "%~f0" >nul 2>&1
 exit /b 1
 """
