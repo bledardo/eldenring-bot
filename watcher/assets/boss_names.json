@@ -1,1042 +1,1421 @@
 [
   {
-    "name": "Margit le Déchu",
-    "location": "Château de Voilorage"
+    "name": "Adan le Voleur du feu",
+    "locations": [
+      "Liurnia, contrée lacustre: Geôle éternelle du scélérat",
+      "Évergéôle du Malfaiteur, Liurnia"
+    ]
   },
   {
-    "name": "Godrick le Greffé",
-    "location": "Château de Voilorage"
+    "name": "Adepte de la Lame d'ébène",
+    "locations": [
+      "Terres interdites",
+      "Tertre draconique de Greyoll: Sanctuaire bestial"
+    ]
   },
   {
-    "name": "Rennala, Reine de la Pleine Lune",
-    "location": "Académie de Raya Lucaria"
+    "name": "Adepte de la putréfaction",
+    "locations": [
+      "Grotte d'Eau Bouillante, Mt. Gelmir"
+    ]
   },
   {
-    "name": "Général Radahn, le Fléau des Astres",
-    "location": "Château de Crinière-Rouge, Caelid"
+    "name": "Adepte de la putréfaction(x2)",
+    "locations": [
+      "Mont Gelmir: Cavernes aux eaux ignées"
+    ]
   },
   {
-    "name": "Morgott, Roi des Réprouvés",
-    "location": "Leyndell, Capitale Royale"
+    "name": "Adula, dragon de pierre d'éclat",
+    "locations": [
+      "Autel lunaire: Autel lunaire"
+    ]
   },
   {
-    "name": "Rykard, Seigneur du Blasphème",
-    "location": "Manoir du Volcan, Mt. Gelmir"
-  },
-  {
-    "name": "Malenia, Lame de Miquella",
-    "location": "Elphael, Étreinte de l'Arbre-Sacré"
-  },
-  {
-    "name": "Malenia, Déesse de la Pourriture",
-    "location": "Elphael, Étreinte de l'Arbre-Sacré"
-  },
-  {
-    "name": "Clerc Bestial",
-    "location": "Farum Azula Croulant"
-  },
-  {
-    "name": "Maliketh, la Lame d'Ébène",
-    "location": "Farum Azula Croulant"
-  },
-  {
-    "name": "Godfrey, Premier Seigneur d'Elden",
-    "location": "Leyndell, Capitale Cendrée"
-  },
-  {
-    "name": "Hoarah Loux, le Guerrier",
-    "location": "Leyndell, Capitale Cendrée"
-  },
-  {
-    "name": "Radagon de l'Ordre d'Or",
-    "location": "Trône d'Elden, Leyndell"
-  },
-  {
-    "name": "Bête d'Elden",
-    "location": "Trône d'Elden, Leyndell"
-  },
-  {
-    "name": "Sire Gideon Ofnir l'Omniscient",
-    "location": "Leyndell, Capitale Cendrée"
-  },
-  {
-    "name": "Mogh, Seigneur du Sang",
-    "location": "Palais Mohgwyn"
-  },
-  {
-    "name": "Mogh, le Réprouvé",
-    "location": "Cathédrale des Réprouvés, Égouts Souterrains"
-  },
-  {
-    "name": "Loretta, Chevaleresse Royale",
-    "location": "Manoir de Caria, Liurnia"
-  },
-  {
-    "name": "Loretta, Chevaleresse de l'Arbre-Sacré",
-    "location": "Arbre-Sacré de Miquella"
-  },
-  {
-    "name": "Noble Sanctechair",
-    "location": "Temple d'Eiglay, Manoir du Volcan"
-  },
-  {
-    "name": "Apôtre Sanctechair",
-    "location": "Dominula, Village du Moulin à Vent, Altus"
-  },
-  {
-    "name": "Apôtre Sanctechair",
-    "location": "Tour Divine de Caelid (sous-sol)"
-  },
-  {
-    "name": "Duo Sanctechair",
-    "location": "Farum Azula Croulant"
-  },
-  {
-    "name": "Chevalier du Creuset",
-    "location": "Évergéôle de Colline d'Orage, Limgrave"
-  },
-  {
-    "name": "Chevalier du Creuset",
-    "location": "Château de Crinière-Rouge, Caelid"
-  },
-  {
-    "name": "Chevalier du Creuset Ordovis",
-    "location": "Tombe du Héros d'Auriza"
-  },
-  {
-    "name": "Chevalier du Creuset Siluria",
-    "location": "Profondeurs de la Souche"
-  },
-  {
-    "name": "Duo de Chevaliers du Creuset",
-    "location": "Tombe du Héros d'Auriza"
-  },
-  {
-    "name": "Commandant Niall",
-    "location": "Château Sol, Cimes des Géants"
-  },
-  {
-    "name": "Commandant O'Neil",
-    "location": "Marécage d'Aeonia, Caelid"
-  },
-  {
-    "name": "Serpent Dévoreur de Dieux",
-    "location": "Manoir du Volcan, Mt. Gelmir"
-  },
-  {
-    "name": "Loup Cramoisi de Radagon",
-    "location": "Académie de Raya Lucaria"
-  },
-  {
-    "name": "Loup Cramoisi du Champion",
-    "location": "Manoir du Volcan, Mt. Gelmir"
-  },
-  {
-    "name": "Lansseax, Dragon Ancien",
-    "location": "Plateau d'Altus, Chemin du Rempart"
-  },
-  {
-    "name": "Placidusax, Seigneur Draconique",
-    "location": "Farum Azula Croulant"
-  },
-  {
-    "name": "Fortissax, la Liche Draconique",
-    "location": "Profondeurs de la Souche"
-  },
-  {
-    "name": "Makar, Dragon du Magma",
-    "location": "Précipice Jonché de Ruines, Liurnia"
-  },
-  {
-    "name": "Dragon du Magma",
-    "location": "Tunnel de Gael, Caelid"
-  },
-  {
-    "name": "Dragon du Magma",
-    "location": "Manoir du Volcan, Mt. Gelmir"
-  },
-  {
-    "name": "Dragon du Magma",
-    "location": "Fort Laiedd, Mt. Gelmir"
-  },
-  {
-    "name": "Theodorix, le Grand Ver",
-    "location": "Plaine Enneigée Consacrée"
-  },
-  {
-    "name": "Dragon Volant Ageel",
-    "location": "Lac d'Ageel, Limgrave"
-  },
-  {
-    "name": "Dragon Volant Greyll",
-    "location": "Pont de Terredragon, Caelid"
-  },
-  {
-    "name": "Dragon Volant Smarag",
-    "location": "Bois Cristallins, Liurnia"
-  },
-  {
-    "name": "Ekzykes le Putréfié",
-    "location": "Sud de Caelid"
-  },
-  {
-    "name": "Borealis, la Brume Glaciale",
-    "location": "Lac Gelé, Cimes des Géants"
-  },
-  {
-    "name": "Dragon Décadent",
-    "location": "Terredragon de Greyoll, Caelid"
-  },
-  {
-    "name": "Adula, Dragon de Pierre d'Éclat",
-    "location": "Autel du Clair de Lune, Liurnia"
-  },
-  {
-    "name": "Dragon de Pierre d'Éclat",
-    "location": "Autel du Clair de Lune, Liurnia"
-  },
-  {
-    "name": "Greyoll, Matriarche des Dragons",
-    "location": "Terredragon de Greyoll, Caelid"
-  },
-  {
-    "name": "Soldat de Godrick",
-    "location": "Cimetière des Naufragés (tutoriel)"
-  },
-  {
-    "name": "Rejeton Greffé",
-    "location": "Chapelle de l'Anticipation"
-  },
-  {
-    "name": "Sentinelle de l'Arbre",
-    "location": "Devant l'Église d'Elleh, Limgrave"
-  },
-  {
-    "name": "Sentinelle de l'Arbre",
-    "location": "Abords de la Capitale, Altus (duo)"
-  },
-  {
-    "name": "Sentinelle Draconique de l'Arbre",
-    "location": "Abords de la Capitale, entrée de Leyndell"
-  },
-  {
-    "name": "Sentinelle Draconique de l'Arbre",
-    "location": "Farum Azula Croulant"
-  },
-  {
-    "name": "Chevalier Peau-de-dragon",
-    "location": "Rivière de Siofra"
-  },
-  {
-    "name": "Chevalier Peau-de-dragon",
-    "location": "Lac de Pourriture"
-  },
-  {
-    "name": "Guerrier Précepteur",
-    "location": "Salle d'Étude de Caria, Liurnia"
-  },
-  {
-    "name": "Mage Royal Miriam",
-    "location": "Salle d'Étude de Caria, Liurnia"
-  },
-  {
-    "name": "Darriwil, Chevalier-Limier",
-    "location": "Évergéôle du Chien Errant, Limgrave"
-  },
-  {
-    "name": "Chevalier-Limier",
-    "location": "Grotte de Cristal du Bord du Lac, Liurnia"
-  },
-  {
-    "name": "Limier de l'Évergéôle",
-    "location": "Évergéôle du Chien Errant, Limgrave"
-  },
-  {
-    "name": "Limier de l'Évergéôle (Labyrinthe)",
-    "location": "Évergéôle du Chien Errant, Limgrave"
-  },
-  {
-    "name": "Chien Errant Blaidd",
-    "location": "Tour de Ranni, Liurnia"
-  },
-  {
-    "name": "Cristallien",
-    "location": "Tunnel de Cristal de Raya Lucaria, Liurnia"
-  },
-  {
-    "name": "Cristallien (Lance)",
-    "location": "Grotte de Cristal de l'Académie, Liurnia"
-  },
-  {
-    "name": "Cristallien (Bâton)",
-    "location": "Grotte de Cristal de l'Académie, Liurnia"
-  },
-  {
-    "name": "Cristallien (Anneau)",
-    "location": "Tunnel de Cristal de Raya Lucaria, Liurnia"
-  },
-  {
-    "name": "Trio de Cristalliens",
-    "location": "Planque de Sellia, Caelid"
-  },
-  {
-    "name": "Sorcier Cristallin et Lancier Cristallien",
-    "location": "Grotte de Cristal de l'Académie, Liurnia"
-  },
-  {
-    "name": "Larme Imitatrice",
-    "location": "Nokron, Cité Éternelle"
-  },
-  {
-    "name": "Larme Imitatrice Errante",
-    "location": "Chemin Caché vers l'Arbre-Sacré"
-  },
-  {
-    "name": "Veilleur de l'Arbre-Monde",
-    "location": "Catacombes du Pied d'Orage, Limgrave"
-  },
-  {
-    "name": "Veilleur de l'Arbre-Monde",
-    "location": "Catacombes de l'Empaleur, Péninsule des Pleurs"
-  },
-  {
-    "name": "Veilleur de l'Arbre-Monde",
-    "location": "Catacombes du Bas de la Falaise, Liurnia"
-  },
-  {
-    "name": "Veilleur de l'Arbre-Monde",
-    "location": "Catacombes de Wyndham, Mt. Gelmir"
-  },
-  {
-    "name": "Veilleur de l'Arbre-Monde",
-    "location": "Catacombes de l'Arbre Mineur, Caelid (duo)"
-  },
-  {
-    "name": "Esprit d'Ancêtre",
-    "location": "Terrefroides de Hallowhorn, Rivière de Siofra"
-  },
-  {
-    "name": "Esprit d'Ancêtre Cerf",
-    "location": "Terrefroides de Hallowhorn, Rivière de Siofra"
-  },
-  {
-    "name": "Esprit Ancestral Royal",
-    "location": "Terrefroides de Hallowhorn, Nokron"
-  },
-  {
-    "name": "Ombre de Morgott",
-    "location": "Leyndell, Capitale Royale"
-  },
-  {
-    "name": "Ombre de Godfrey",
-    "location": "Leyndell, Capitale Royale"
-  },
-  {
-    "name": "Avatar de l'Arbre-Monde",
-    "location": "Arbre Mineur, Péninsule des Pleurs"
-  },
-  {
-    "name": "Avatar de l'Arbre-Monde",
-    "location": "Arbre Mineur, Liurnia Sud-Ouest"
-  },
-  {
-    "name": "Avatar de l'Arbre-Monde",
-    "location": "Arbre Mineur, Liurnia Nord-Est"
-  },
-  {
-    "name": "Avatar de l'Arbre-Monde",
-    "location": "Arbre Mineur, Caelid"
-  },
-  {
-    "name": "Avatar de l'Arbre-Monde",
-    "location": "Arbre Mineur, Cimes des Géants"
-  },
-  {
-    "name": "Avatar Putride de l'Arbre-Monde",
-    "location": "Arbre Mineur, Caelid Nord-Ouest"
-  },
-  {
-    "name": "Avatar Putride de l'Arbre-Monde",
-    "location": "Arbre Mineur, Terredragon de Greyoll"
-  },
-  {
-    "name": "Avatar Putride de l'Arbre-Monde",
-    "location": "Arbre Mineur, Plaine Enneigée Consacrée"
-  },
-  {
-    "name": "Avatar Putride de l'Arbre-Monde",
-    "location": "Elphael, Étreinte de l'Arbre-Sacré"
-  },
-  {
-    "name": "Visage de Ver",
-    "location": "Arbre Mineur, Mt. Gelmir"
+    "name": "Agheel le dragon volant",
+    "locations": [
+      "Nécrolimbe: Lac d'Agheel",
+      "Lac d'Ageel, Limgrave"
+    ]
   },
   {
     "name": "Aigle Tempête",
-    "location": "Château de Voilorage"
-  },
-  {
-    "name": "Ours Géant Ensanglanté",
-    "location": "Grotte du Terrier, Terredragon"
-  },
-  {
-    "name": "Éléonora, Danseuse du Sang Putride",
-    "location": "Seconde Église de Marika, Altus"
-  },
-  {
-    "name": "Gardien Golem",
-    "location": "Grotte du Grand Chemin, Limgrave"
-  },
-  {
-    "name": "Félin Léonin Géant",
-    "location": "Château Morne, Péninsule des Pleurs"
-  },
-  {
-    "name": "Loup Léonin Géant",
-    "location": "Château Morne, Péninsule des Pleurs"
-  },
-  {
-    "name": "Miranda la Fleur Putride",
-    "location": "Grotte de la Pierre Tombale, Péninsule des Pleurs"
-  },
-  {
-    "name": "Miranda la Fleur Vénéneuse",
-    "location": "Grotte du Parfumeur, Altus"
-  },
-  {
-    "name": "Ombre Noire de la Bête Garante",
-    "location": "Sanctuaire Bestial, Terredragon"
-  },
-  {
-    "name": "Ombre Noire de la Bête Garante",
-    "location": "Terres Interdites, Grand Ascenseur de Rold"
-  },
-  {
-    "name": "Escargot Invocateur d'Esprits",
-    "location": "Catacombes du Bout de la Route, Liurnia"
-  },
-  {
-    "name": "Escargot Invocateur d'Esprits",
-    "location": "Grotte de l'Invocateur d'Esprits, Cimes des Géants"
-  },
-  {
-    "name": "Chevalier du Feu Géant",
-    "location": "Forge des Géants, Cimes des Géants"
-  },
-  {
-    "name": "Géant de Feu",
-    "location": "Forge des Géants, Cimes des Géants"
-  },
-  {
-    "name": "Astel, Étoiles des Ténèbres",
-    "location": "Tunnel d'Yelough Anix, Plaine Enneigée Consacrée"
-  },
-  {
-    "name": "Astel, Avorton des Ténèbres",
-    "location": "Grand Cloître, Lac de Pourriture"
-  },
-  {
-    "name": "Gargouille Vaillante",
-    "location": "Nokron, Aqueduc de Siofra"
-  },
-  {
-    "name": "Duo de Gargouilles Vaillantes",
-    "location": "Nokron, Aqueduc de Siofra"
-  },
-  {
-    "name": "Ombre Funeste",
-    "location": "Liurnia, Porte de la Ville Nord (nuit)"
-  },
-  {
-    "name": "Ombre Funeste",
-    "location": "Caelid, Marécage d'Aeonia Sud (nuit)"
-  },
-  {
-    "name": "Ombre Funeste",
-    "location": "Cimes des Géants (nuit)"
-  },
-  {
-    "name": "Ombre Funeste",
-    "location": "Ermitage de l'Apostat, Plaine Enneigée Consacrée (nuit)"
-  },
-  {
-    "name": "Guerrier Nox",
-    "location": "Sellia, Ville de la Sorcellerie, Caelid"
-  },
-  {
-    "name": "Duo de Guerriers Nox",
-    "location": "Sellia, Ville de la Sorcellerie, Caelid"
-  },
-  {
-    "name": "Prêtresse Nox",
-    "location": "Sellia, Ville de la Sorcellerie, Caelid"
-  },
-  {
-    "name": "Parfumeuse Tricia",
-    "location": "Catacombes Hideuses, Mt. Gelmir"
-  },
-  {
-    "name": "Tueur de Réprouvés",
-    "location": "Village des Albinauriques, Liurnia"
-  },
-  {
-    "name": "Roi Fêlé",
-    "location": "Pont de la Tour Divine d'Altus Est"
-  },
-  {
-    "name": "Roi des Albinauriques",
-    "location": "Village des Albinauriques, Liurnia"
-  },
-  {
-    "name": "Famille de Pourriture",
-    "location": "Grotte d'Eau Bouillante, Mt. Gelmir"
-  },
-  {
-    "name": "Créature Stellaire",
-    "location": "Tunnel de Cristal de Sellia, Caelid"
-  },
-  {
-    "name": "Créature Stellaire",
-    "location": "Altus, sud de l'Arbre Fantôme"
-  },
-  {
-    "name": "Créature Stellaire Adulte",
-    "location": "Sommet du Mt. Gelmir"
-  },
-  {
-    "name": "Esprit d'Arbre Putride Ulcéreux",
-    "location": "Tombe du Héros de Fringefolk, Limgrave"
-  },
-  {
-    "name": "Esprit d'Arbre Putride Ulcéreux",
-    "location": "Château de Voilorage (fosse)"
-  },
-  {
-    "name": "Esprit d'Arbre Putride Ulcéreux",
-    "location": "Mt. Gelmir, Chemin de l'Iniquité"
-  },
-  {
-    "name": "Esprit d'Arbre Putride Ulcéreux",
-    "location": "Grand Cloître, Rivière d'Ainsel"
-  },
-  {
-    "name": "Esprit d'Arbre Putride Ulcéreux",
-    "location": "Catacombes des Cimes des Géants"
-  },
-  {
-    "name": "Revenant Royal",
-    "location": "Ruines du Royaume, Liurnia"
-  },
-  {
-    "name": "Nocher Diaphane",
-    "location": "Village d'Eau-Invocatrice, Limgrave"
-  },
-  {
-    "name": "Nocher Diaphane",
-    "location": "Liurnia Est, près de la Salle d'Étude de Caria"
-  },
-  {
-    "name": "Nocher Diaphane",
-    "location": "Ruines de Wyndham, Altus"
-  },
-  {
-    "name": "Oiseau de Rite Mortuaire",
-    "location": "Voir Ombre Funeste"
-  },
-  {
-    "name": "Volatile Funéraire",
-    "location": "Voir Rapace Funeste"
-  },
-  {
-    "name": "Chasseur aux Perles Cinéraires",
-    "location": "Baraque du Maître d'Armes, Limgrave (nuit)"
-  },
-  {
-    "name": "Chasseur aux Perles Cinéraires",
-    "location": "Église des Vœux, Liurnia (nuit)"
-  },
-  {
-    "name": "Chasseur aux Perles Cinéraires",
-    "location": "Baraque du Marchand Ermite, Altus (nuit)"
-  },
-  {
-    "name": "Chasseur aux Perles Cinéraires",
-    "location": "Baraque du Marchand Isolé, Terredragon (nuit)"
-  },
-  {
-    "name": "Cavalier Crépusculaire",
-    "location": "Pont au nord du Lac d'Ageel, Limgrave (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Pont du Lac d'Ageel, Limgrave (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Péninsule des Pleurs Sud (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Pont de la Ville, Liurnia Sud (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Route de Bellum, Liurnia Nord (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Route de Caelid Sud (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Pont de Terredragon, Caelid (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Jonction de l'Altus (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Terres Interdites (nuit)"
-  },
-  {
-    "name": "Cavalerie de la Nuit",
-    "location": "Plaine Enneigée Consacrée (nuit, duo)"
-  },
-  {
-    "name": "Rapace Funeste",
-    "location": "Limgrave, Baraque du Maître d'Armes (nuit)"
-  },
-  {
-    "name": "Rapace Funeste",
-    "location": "Péninsule des Pleurs, Château Morne (nuit)"
-  },
-  {
-    "name": "Rapace Funeste",
-    "location": "Liurnia, Île Panoramique (nuit)"
-  },
-  {
-    "name": "Rapace Funeste",
-    "location": "Abords de la Capitale (nuit)"
-  },
-  {
-    "name": "Mage de Bataille Hugues",
-    "location": "Évergéôle de Sellia, Caelid"
-  },
-  {
-    "name": "Vyke aux Doigts Putréfiés",
-    "location": "Église de l'Inhibition, Liurnia"
-  },
-  {
-    "name": "Vyke, Chevalier de la Foudre Démente",
-    "location": "Évergéôle du Prétendant au Seigneur, Cimes des Géants"
-  },
-  {
-    "name": "Chevalier de la Putréfaction",
-    "location": "Grotte d'Eau Dormante, Liurnia"
-  },
-  {
-    "name": "Duo de Chevaliers de la Putréfaction",
-    "location": "Grotte Abandonnée, Caelid"
-  },
-  {
-    "name": "Homme-Bête de Farum Azula",
-    "location": "Grotte de Groveside, Limgrave"
-  },
-  {
-    "name": "Homme-Bête de Farum Azula",
-    "location": "Grotte de Terredragon, Caelid (duo)"
-  },
-  {
-    "name": "Ombre du Cimetière",
-    "location": "Catacombes de la Pierre Tombale, Péninsule des Pleurs"
-  },
-  {
-    "name": "Ombre du Cimetière",
-    "location": "Catacombes du Couteau Noir, Liurnia"
-  },
-  {
-    "name": "Ombre du Cimetière",
-    "location": "Catacombes de Caelid"
-  },
-  {
-    "name": "Assassin au Couteau Noir",
-    "location": "Catacombes Touchées par la Mort, Limgrave"
-  },
-  {
-    "name": "Assassin au Couteau Noir",
-    "location": "Catacombes du Couteau Noir, Liurnia"
-  },
-  {
-    "name": "Assassin au Couteau Noir",
-    "location": "Tombe du Héros Sanctifié, Altus"
-  },
-  {
-    "name": "Assassin au Couteau Noir",
-    "location": "Grotte du Sage, Altus"
-  },
-  {
-    "name": "Alecto, Meneuse des Couteaux Noirs",
-    "location": "Évergéôle de la Meneuse, Autel du Clair de Lune"
-  },
-  {
-    "name": "Ancien Héros de Zamor",
-    "location": "Évergéôle des Pleurs, Péninsule des Pleurs"
-  },
-  {
-    "name": "Ancien Héros de Zamor",
-    "location": "Tombe du Héros Sanctifié, Altus"
-  },
-  {
-    "name": "Ancien Héros de Zamor",
-    "location": "Tombe du Héros Conquérant des Géants, Cimes des Géants"
-  },
-  {
-    "name": "Reine Semi-Humaine",
-    "location": "Grotte Côtière, Limgrave"
-  },
-  {
-    "name": "Gilika, Reine Semi-Humaine",
-    "location": "Ruines de Lux, Altus"
-  },
-  {
-    "name": "Maggie, Reine Semi-Humaine",
-    "location": "Village de l'Ermite, Mt. Gelmir"
-  },
-  {
-    "name": "Margot, Reine Semi-Humaine",
-    "location": "Grotte du Volcan, Mt. Gelmir"
-  },
-  {
-    "name": "Chimère Léonine",
-    "location": "Château Morne, Péninsule des Pleurs"
-  },
-  {
-    "name": "Chimère Écailleuse",
-    "location": "Tunnel de Morne, Péninsule des Pleurs"
-  },
-  {
-    "name": "Croisé Mal Engendré",
-    "location": "Grotte des Abandonnés, Plaine Enneigée Consacrée"
-  },
-  {
-    "name": "Guerrier Mal Engendré",
-    "location": "Château de Crinière-Rouge, Caelid"
-  },
-  {
-    "name": "Ours Runique",
-    "location": "Grotte de la Galerie Souterraine, Péninsule des Pleurs"
-  },
-  {
-    "name": "Adan, Voleur de Feu",
-    "location": "Évergéôle du Malfaiteur, Liurnia"
-  },
-  {
-    "name": "Esgar, Prêtre du Sang",
-    "location": "Catacombes de Leyndell"
-  },
-  {
-    "name": "Nécromancien Garris",
-    "location": "Grotte du Sage, Altus"
-  },
-  {
-    "name": "Godefroy le Greffé",
-    "location": "Évergéôle de la Lignée Dorée, Altus"
-  },
-  {
-    "name": "Elemer du Roncier",
-    "location": "Château Ombragé, Altus"
-  },
-  {
-    "name": "Pat l'Affranchi",
-    "location": "Grotte d'Eau Trouble, Limgrave"
-  },
-  {
-    "name": "Bols, Chevalier Carien",
-    "location": "Évergéôle du Coucou, Liurnia"
-  },
-  {
-    "name": "Seigneur d'Onyx",
-    "location": "Tunnel Scellé, Altus"
-  },
-  {
-    "name": "Seigneur d'Albâtre",
-    "location": "Évergéôle de la Tombe Royale, Liurnia"
-  },
-  {
-    "name": "Noble Sanguinaire",
-    "location": "Ruines de Sang Tordu, Altus"
-  },
-  {
-    "name": "Duelliste Frénétique",
-    "location": "Grotte de la Geôle, Caelid"
-  },
-  {
-    "name": "Duelliste Gardien des Tombes Putride",
-    "location": "Catacombes de la Plaine Enneigée Consacrée"
-  },
-  {
-    "name": "Kindred de la Pourriture",
-    "location": "Grotte d'Eau Bouillante, Mt. Gelmir"
-  },
-  {
-    "name": "Chevalier Purrot",
-    "location": "Grotte d'Eau Dormante, Liurnia"
-  },
-  {
-    "name": "Chef Demi-Humain",
-    "location": "Grotte Côtière, Limgrave"
-  },
-  {
-    "name": "Tête de Citrouille Démente",
-    "location": "Cave des Ruines de la Voie, Limgrave"
-  },
-  {
-    "name": "Tête de Citrouille Démente",
-    "location": "Ruines de Caelem, Caelid (duo)"
-  },
-  {
-    "name": "Soldat Draconide",
-    "location": "Rivière de Siofra"
-  },
-  {
-    "name": "Soldat Draconide de Nokstella",
-    "location": "Rivière d'Ainsel, Nokstella"
-  },
-  {
-    "name": "Vierges Ravisseuses",
-    "location": "Chambre d'Inquisition, sous le Manoir du Volcan"
-  },
-  {
-    "name": "Champions de Fia",
-    "location": "Profondeurs de la Souche"
-  },
-  {
-    "name": "Jumeaux Abominables",
-    "location": "Pont de la Tour Divine d'Altus Est"
-  },
-  {
-    "name": "Gargouille de la Lame Noire",
-    "location": "Sanctuaire Bestial, Terredragon"
-  },
-  {
-    "name": "Troll Fouisseur",
-    "location": "Tunnels de Limgrave"
-  },
-  {
-    "name": "Troll Fouisseur",
-    "location": "Ancien Tunnel d'Altus"
-  },
-  {
-    "name": "Troll des Ruines",
-    "location": "Limgrave (monde ouvert)"
-  },
-  {
-    "name": "Troll de Pierre",
-    "location": "Limgrave (monde ouvert)"
-  },
-  {
-    "name": "Troll Chevalier",
-    "location": "Limgrave (monde ouvert)"
-  },
-  {
-    "name": "Messmer l'Empaleur",
-    "location": "Shadow Keep, Chambre Noire"
-  },
-  {
-    "name": "Rellana, chevaleresse des Lunes jumelles",
-    "location": "Château d'Ensis, Plaine du Tombeau"
-  },
-  {
-    "name": "Lion Dansant de la Bête Divine",
-    "location": "Belurat, Tour de la Colonie"
-  },
-  {
-    "name": "Lion Dansant de la Bête Divine",
-    "location": "Grand Escalier des Ruines Anciennes, Rauh"
-  },
-  {
-    "name": "Comte Ymir, Mère des Doigts",
-    "location": "Cathédrale de Manus Metyr, Scadu Altus"
-  },
-  {
-    "name": "Metyr, Mère des Doigts",
-    "location": "Ruines des Doigts de Miyr, Scadu Altus"
-  },
-  {
-    "name": "Midra, Seigneur de la flamme exaltée",
-    "location": "Manoir de Midra, Bois Abyssal"
-  },
-  {
-    "name": "Romina, sainte du bourgeon",
-    "location": "Église du Bourgeon, Ruines Anciennes de Rauh"
-  },
-  {
-    "name": "Chevalier Putride",
-    "location": "Profondeurs de la Fissure, Côte Méridionale"
-  },
-  {
-    "name": "Rugalea le Grand Ours Rouge",
-    "location": "Rauh Base Nord"
-  },
-  {
-    "name": "Bayle l'Effroyable",
-    "location": "Sommet du Pic Déchiqueté"
-  },
-  {
-    "name": "Lamenteur",
-    "location": "Geôle du Lamenteur, Côte Méridionale"
-  },
-  {
-    "name": "Senessax, le Dragon Ancien",
-    "location": "Pic Déchiqueté Ouest"
+    "locations": [
+      "Château de Voilorage"
+    ]
+  },
+  {
+    "name": "Alecto, meneuse des Couteaux noirs",
+    "locations": [
+      "Autel lunaire: Geôle éternelle de la meneuse des Couteaux noirs"
+    ]
+  },
+  {
+    "name": "Ancien héros de Zamor",
+    "locations": [
+      "Cimes des Géants: Tombe des pourfendeurs de Géants",
+      "Plateau Altus: Tombe du héros canonisé",
+      "Péninsule larmoyante: Geôle éternelle des lamentations"
+    ]
+  },
+  {
+    "name": "Apôtre sanctechair",
+    "locations": [
+      "Cimes des Géants: Grotte du mande-esprit",
+      "Plateau Altus: Dominula, village aux moulins",
+      "Tertre draconique de Greyoll: Tour divine de Caelid"
+    ]
+  },
+  {
+    "name": "Assassin des Couteaux noirs",
+    "locations": [
+      "Liurnia, contrée lacustre: Catacombes des Couteaux noirs",
+      "Nécrolimbe: Catacombes funestes",
+      "Plateau Altus: Cavernes du sage",
+      "Plateau Altus: Tombe du héros canonisé",
+      "Catacombes Touchées par la Mort, Limgrave",
+      "Catacombes du Couteau Noir, Liurnia",
+      "Tombe du Héros Sanctifié, Altus",
+      "Grotte du Sage, Altus"
+    ]
+  },
+  {
+    "name": "Astel la Constellation des ténèbres",
+    "locations": [
+      "Champs enneigés consacrés: Galerie d'anis jaune",
+      "Tunnel d'Yelough Anix, Plaine Enneigée Consacrée"
+    ]
+  },
+  {
+    "name": "Astel le Rejeton du vide",
+    "locations": [
+      "L'Ainsel: Grand cloître",
+      "Grand Cloître, Lac de Pourriture"
+    ]
+  },
+  {
+    "name": "Avatar de l'Arbre-Monde",
+    "locations": [
+      "Cimes des Géants: Arbre-Monde mineur",
+      "Liurnia, contrée lacustre: Enceinte du Mausolée",
+      "Liurnia, contrée lacustre: Tour du prosélyte",
+      "Péninsule larmoyante: Arbre-Monde mineur"
+    ]
   },
   {
     "name": "Avatar de l'Arbre-Occulte",
-    "location": "Base de l'Arbre-Occulte, Scadu Altus"
+    "locations": [
+      "Panorama occulte: Base de l'Arbre-Occulte"
+    ]
   },
   {
-    "name": "Commandant Gaius",
-    "location": "Shadow Keep, Porte Arrière, Scadu Altus"
+    "name": "Avatar putride",
+    "locations": [
+      "Caelid: Arbre-Monde mineur",
+      "Champs enneigés consacrés: Arbre-Monde mineur",
+      "Tertre draconique de Greyoll: Arbre-Monde mineur"
+    ]
   },
   {
-    "name": "Radahn, Futur Consort",
-    "location": "Enir-Ilim"
+    "name": "Bayle l'Effroyable",
+    "locations": [
+      "Pic déchiqueté: Sommet du Pic déchiqueté"
+    ]
   },
   {
-    "name": "Radahn, consort de Miquella",
-    "location": "Enir-Ilim"
+    "name": "Bols, chevalier de Caria",
+    "locations": [
+      "Liurnia, contrée lacustre: Geôle éternelle du Coucou",
+      "Évergéôle du Coucou, Liurnia"
+    ]
   },
   {
-    "name": "Hippopotame Doré",
-    "location": "Shadow Keep, Porte Principale, Scadu Altus"
+    "name": "Borealis la Brume glaciale",
+    "locations": [
+      "Cimes des Géants: Lac gelé",
+      "Lac Gelé, Cimes des Géants"
+    ]
   },
   {
-    "name": "Jori, Inquisiteur en Chef",
-    "location": "Catacombes de Sombrelumière, Scadu Altus"
+    "name": "Bête d'Elden",
+    "locations": [
+      "Leyndell, capitale des cendres: Marika brisée"
+    ]
   },
   {
-    "name": "Chevalier de la Geôle Noire",
-    "location": "Mausolée Sans Nom Occidental, Plaine du Tombeau"
+    "name": "Cavalier crépusculaire",
+    "locations": [
+      "Caelid: Sud de la chaussée de Caelid",
+      "Liurnia, contrée lacustre: Pont du village",
+      "Liurnia, contrée lacustre: Église martiale",
+      "Nécrolimbe",
+      "Plateau Altus: Croisée de la chaussée d'Altus",
+      "Péninsule larmoyante: Rempart du Château de Vent-Hurlant",
+      "Terres interdites",
+      "Tertre draconique de Greyoll: Tour de Lenne"
+    ]
+  },
+  {
+    "name": "Cavalier crépusculaire au fléau",
+    "locations": [
+      "Champs enneigés consacrés: Champs enneigés consacrés intérieurs"
+    ]
+  },
+  {
+    "name": "Cavalier crépusculaire au glaive",
+    "locations": [
+      "Champs enneigés consacrés: Champs enneigés consacrés intérieurs"
+    ]
+  },
+  {
+    "name": "Champion de Fia",
+    "locations": [
+      "Profondeurs de Fonderacine",
+      "Profondeurs de la Souche"
+    ]
+  },
+  {
+    "name": "Chasseur de perles cinéraires",
+    "locations": [
+      "Faubourgs de la capitale: Cabane du marchand ermite",
+      "Liurnia, contrée lacustre: Église des vœux",
+      "Nécrolimbe: Cabane du maître de guerre",
+      "Tertre draconique de Greyoll: Cabane du marchand ascétique",
+      "Baraque du Maître d'Armes, Limgrave (nuit)",
+      "Église des Vœux, Liurnia (nuit)",
+      "Baraque du Marchand Ermite, Altus (nuit)",
+      "Baraque du Marchand Isolé, Terredragon (nuit)"
+    ]
+  },
+  {
+    "name": "Chef des démons sanglants",
+    "locations": [
+      "Plaine sépulcrale: Grotte de l'embouchure"
+    ]
+  },
+  {
+    "name": "Chef semi-humain(x2)",
+    "locations": [
+      "Nécrolimbe: Grotte marine",
+      "Grotte Côtière, Limgrave"
+    ]
+  },
+  {
+    "name": "Chevalier de la Geôle Solitaire",
+    "locations": [
+      "Plaine sépulcrale: Mausolée occidental sans nom"
+    ]
   },
   {
     "name": "Chevalier de la Mort",
-    "location": "Catacombes de la Faille Brumeuse, Plaine du Tombeau"
+    "locations": [
+      "Altus Occulte: Catacombes de la faille brumeuse",
+      "Altus Occulte: Catacombes du Scorpion"
+    ]
   },
   {
-    "name": "Chevalier de la Mort",
-    "location": "Catacombes de la Rivière du Scorpion, Rauh Base"
+    "name": "Chevalier de la Noble putréfaction",
+    "locations": [
+      "Liurnia, contrée lacustre: Grotte aux eaux stagnantes",
+      "Grotte d'Eau Dormante, Liurnia"
+    ]
   },
   {
-    "name": "Homme-Dragon Ancien",
-    "location": "Fosse du Dragon, Plaine du Tombeau"
-  },
-  {
-    "name": "Dragon de flammes spectrales",
-    "location": "Lac de la Plaine du Tombeau"
-  },
-  {
-    "name": "Dragon de flammes spectrales",
-    "location": "Route de Moorth Sud, Scadu Altus"
-  },
-  {
-    "name": "Dragon de flammes spectrales",
-    "location": "Côte Céruléenne, Côte Méridionale"
-  },
-  {
-    "name": "Drake du Pic déchiqueté",
-    "location": "Pied du Pic Déchiqueté"
-  },
-  {
-    "name": "Drake du Pic déchiqueté",
-    "location": "Pic Déchiqueté, zone supérieure"
-  },
-  {
-    "name": "Chevalier Noir Edredd",
-    "location": "Fort du Châtiment, Scadu Altus"
-  },
-  {
-    "name": "Chevalier Noir Garrew",
-    "location": "Fort de la Faille Brumeuse, Scadu Altus"
-  },
-  {
-    "name": "Ours Rouge",
-    "location": "Mausolée Sans Nom Septentrional, Rauh Base"
-  },
-  {
-    "name": "Ralva la grande ourse rouge",
-    "location": "Lac nord-est du Carrefour, Scadu Altus"
-  },
-  {
-    "name": "Dane Mortefeuille",
-    "location": "Ruines de Moorth, Scadu Altus"
-  },
-  {
-    "name": "Lame Maudite Labirith",
-    "location": "Geôle de Bonny, Scadu Altus"
-  },
-  {
-    "name": "Rakshasa",
-    "location": "Mausolée Sans Nom Oriental, Scadu Altus"
-  },
-  {
-    "name": "Marigga, Reine Semi-Humaine",
-    "location": "Côte Céruléenne Ouest, Côte Méridionale"
-  },
-  {
-    "name": "Onze, Épéiste Semi-Humain",
-    "location": "Geôle de Belurat, Plaine du Tombeau"
-  },
-  {
-    "name": "Chef Démon Sanglant",
-    "location": "Grotte de l'Embouchure, Plaine du Tombeau"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Ruines Brûlées, Plaine du Tombeau"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Route vers Shadow Keep, Scadu Altus"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Quartier de l'Église, Scadu Altus"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Ruines d'Unte, Scadu Altus"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Tombe Cachée de Charo, Côte Méridionale"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Rivière Ellac, Côte Méridionale"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Ruines Anciennes de Rauh Est"
-  },
-  {
-    "name": "Golem Fourneau",
-    "location": "Est de la Cathédrale de Manus Metyr, Scadu Altus"
-  },
-  {
-    "name": "Leda et ses Alliés",
-    "location": "Chambre Purificatrice, Enir-Ilim"
-  },
-  {
-    "name": "Danseuse de Ranah",
-    "location": "Mausolée Sans Nom Méridional, Côte Céruléenne"
-  },
-  {
-    "name": "Logur, la Griffe Bestiale",
-    "location": "Plaine du Tombeau Sud-Est"
+    "name": "Chevalier du Creuset",
+    "locations": [
+      "Caelid: Château du Lion rouge",
+      "Faubourgs de la capitale: Tombe des héros d'Auriza",
+      "Nécrolimbe: Geôle éternelle de Valorage"
+    ]
   },
   {
     "name": "Chevalier du Creuset Devonia",
-    "location": "Ruines Anciennes de Rauh Est"
+    "locations": [
+      "Ruines Anciennes de Rauh Est"
+    ]
+  },
+  {
+    "name": "Chevalier du Creuset Ordovis",
+    "locations": [
+      "Tombe du Héros d'Auriza"
+    ]
+  },
+  {
+    "name": "Chevalier du Creuset Siluria",
+    "locations": [
+      "Profondeurs de la Souche"
+    ]
+  },
+  {
+    "name": "Chevalier du Feu Géant",
+    "locations": [
+      "Forge des Géants, Cimes des Géants"
+    ]
+  },
+  {
+    "name": "Chevalier faucheur de la Noble putréfaction",
+    "locations": [
+      "Tertre draconique de Greyoll: Grotte désertée"
+    ]
+  },
+  {
+    "name": "Chevalier lancier de la Noble putréfaction",
+    "locations": [
+      "Tertre draconique de Greyoll: Grotte désertée"
+    ]
+  },
+  {
+    "name": "Chevalier Peau-de-dragon",
+    "locations": [
+      "Rivière de Siofra",
+      "Lac de Pourriture"
+    ]
+  },
+  {
+    "name": "Chevalier putride",
+    "locations": [
+      "Côte céruléenne: Fissure des cercueils de pierre"
+    ]
+  },
+  {
+    "name": "Chevalier-limier",
+    "locations": [
+      "Liurnia, contrée lacustre: Grotte cristalline du lac"
+    ]
+  },
+  {
+    "name": "Chien Errant Blaidd",
+    "locations": [
+      "Tour de Ranni, Liurnia"
+    ]
+  },
+  {
+    "name": "Chimère léonine",
+    "locations": [
+      "Caelid: Château du Lion rouge",
+      "Plateau Altus: Catacombes des aberrations",
+      "Péninsule larmoyante: Tombe de Vent-Hurlant"
+    ]
+  },
+  {
+    "name": "Chimère écailleuse",
+    "locations": [
+      "Péninsule larmoyante: Galerie de Vent-Hurlant"
+    ]
+  },
+  {
+    "name": "Clerc Bestial",
+    "locations": [
+      "Farum Azula Croulant"
+    ]
+  },
+  {
+    "name": "Commandant Niall",
+    "locations": [
+      "Cimes des Géants: Solcastel"
+    ]
+  },
+  {
+    "name": "Commandant O'Neil",
+    "locations": [
+      "Caelid: Marais d'Ivoine"
+    ]
+  },
+  {
+    "name": "Commandant Gaïus",
+    "locations": [
+      "Panorama occulte",
+      "Shadow Keep, Porte Arrière, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Comte Ymir, mère des Doigts",
+    "locations": [
+      "Altus Occulte: Cathédrale de Manus Metyr",
+      "Cathédrale de Manus Metyr, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Cristallien",
+    "locations": [
+      "Tunnel de Cristal de Raya Lucaria, Liurnia"
+    ]
+  },
+  {
+    "name": "Cristallien (Anneau)",
+    "locations": [
+      "Tunnel de Cristal de Raya Lucaria, Liurnia"
+    ]
+  },
+  {
+    "name": "Cristallien (Bâton)",
+    "locations": [
+      "Grotte de Cristal de l'Académie, Liurnia"
+    ]
+  },
+  {
+    "name": "Cristallien (Lance)",
+    "locations": [
+      "Grotte de Cristal de l'Académie, Liurnia"
+    ]
+  },
+  {
+    "name": "Croisé chimérique",
+    "locations": [
+      "Champs enneigés consacrés: Grotte des parias"
+    ]
+  },
+  {
+    "name": "Créature stellaire",
+    "locations": [
+      "Caelid: Galerie cristalline de Sellia",
+      "Panorama occulte: Colline des Doigts de pierre",
+      "Plateau Altus: Cratère stellaire"
+    ]
+  },
+  {
+    "name": "Créature stellaire adulte",
+    "locations": [
+      "Mont Gelmir: Neuvième camp du Mont Gelmir"
+    ]
+  },
+  {
+    "name": "Dane Mortefeuille",
+    "locations": [
+      "Altus Occulte: Ruines de Moorth"
+    ]
+  },
+  {
+    "name": "Danseur cristalien",
+    "locations": [
+      "Liurnia, contrée lacustre: Galerie cristalline de Raya Lucaria",
+      "Plateau Altus: Galerie d'Altus"
+    ]
+  },
+  {
+    "name": "Danseur cristalien putride",
+    "locations": [
+      "Caelid: Antre de Sellia"
+    ]
+  },
+  {
+    "name": "Danseuse de Ranah",
+    "locations": [
+      "Côte céruléenne: Mausolée austral sans nom"
+    ]
+  },
+  {
+    "name": "Darriwil, Chevalier-limier",
+    "locations": [
+      "Nécrolimbe: Geôle éternelle du limier esseulé"
+    ]
+  },
+  {
+    "name": "Dragon de flammes spectrales",
+    "locations": [
+      "Altus Occulte",
+      "Côte céruléenne",
+      "Plaine sépulcrale"
+    ]
+  },
+  {
+    "name": "Dragon de Pierre d'Éclat",
+    "locations": [
+      "Autel du Clair de Lune, Liurnia"
+    ]
+  },
+  {
+    "name": "Dragon du magma",
+    "locations": [
+      "Caelid: Galerie de Gael",
+      "Mont Gelmir: Fort Laiedd"
+    ]
+  },
+  {
+    "name": "Dragon du Pic déchiqueté",
+    "locations": [
+      "Pic déchiqueté: Flanc du Pic déchiqueté",
+      "Pic déchiqueté: Pied du Pic déchiqueté"
+    ]
+  },
+  {
+    "name": "Duelliste frénétique",
+    "locations": [
+      "Caelid: Cavernes aux geôles"
+    ]
+  },
+  {
+    "name": "Duelliste gardien du tombeau",
+    "locations": [
+      "Faubourgs de la capitale: Tombe auxiliaire d'Auriza",
+      "Nécrolimbe: Catacombes des eaux noires"
+    ]
+  },
+  {
+    "name": "Duelliste putride gardien du tombeau",
+    "locations": [
+      "Champs enneigés consacrés: Crypte des Champs enneigés consacrés",
+      "Catacombes de la Plaine Enneigée Consacrée"
+    ]
+  },
+  {
+    "name": "Duo de Chevaliers de la Putréfaction",
+    "locations": [
+      "Grotte Abandonnée, Caelid"
+    ]
+  },
+  {
+    "name": "Duo de Chevaliers du Creuset",
+    "locations": [
+      "Tombe du Héros d'Auriza"
+    ]
+  },
+  {
+    "name": "Duo de Gargouilles Vaillantes",
+    "locations": [
+      "Nokron, Aqueduc de Siofra"
+    ]
+  },
+  {
+    "name": "Duo de Guerriers Nox",
+    "locations": [
+      "Sellia, Ville de la Sorcellerie, Caelid"
+    ]
+  },
+  {
+    "name": "Duo sanctechair",
+    "locations": [
+      "Ruines de Farum Azula: Autel du Temple des dragons"
+    ]
+  },
+  {
+    "name": "Edredd, chevalier Noir",
+    "locations": [
+      "Altus Occulte: Fort de la Réprimande",
+      "Fort du Châtiment, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Ekzykes le Putréfié",
+    "locations": [
+      "Caelid: Église de la putréfaction"
+    ]
+  },
+  {
+    "name": "Elemer du Roncier",
+    "locations": [
+      "Plateau Altus: Le Bastiombre"
+    ]
+  },
+  {
+    "name": "Escargot mande-esprit",
+    "locations": [
+      "Cimes des Géants: Grotte du mande-esprit",
+      "Liurnia, contrée lacustre: Catacombes de l'impasse",
+      "Catacombes du Bout de la Route, Liurnia",
+      "Grotte de l'Invocateur d'Esprits, Cimes des Géants"
+    ]
+  },
+  {
+    "name": "Esgar, prêtre du sang",
+    "locations": [
+      "Leyndell, capitale royale: Catacombes de Leyndell"
+    ]
+  },
+  {
+    "name": "Esprit ancestral",
+    "locations": [
+      "La Siofra: Berge de la Siofra"
+    ]
+  },
+  {
+    "name": "Esprit ancestral royal",
+    "locations": [
+      "La Siofra: Domaine de Sacrecorne"
+    ]
+  },
+  {
+    "name": "Esprit d'arbre putride",
+    "locations": [
+      "Tertre draconique de Greyoll: Catacombes des défunts valeureux"
+    ]
+  },
+  {
+    "name": "Esprit d'arbre ulcéreux",
+    "locations": [
+      "Cimes des Géants: Catacombes des Cimes des Géants",
+      "Mont Gelmir: Arbre-Monde mineur",
+      "Nécrolimbe: Tombe des héros des confins"
+    ]
+  },
+  {
+    "name": "Face de ver",
+    "locations": [
+      "Plateau Altus: Arbre-Monde mineur"
+    ]
+  },
+  {
+    "name": "Fortissax la Liche draconique",
+    "locations": [
+      "Profondeurs de Fonderacine",
+      "Profondeurs de la Souche"
+    ]
+  },
+  {
+    "name": "Félin Léonin Géant",
+    "locations": [
+      "Château Morne, Péninsule des Pleurs"
+    ]
+  },
+  {
+    "name": "Gardien des Tombes d'Ancêtres",
+    "locations": [
+      "Catacombes du Pied de la Tempête, Limgrave"
+    ]
+  },
+  {
+    "name": "Gargouille vaillante",
+    "locations": [
+      "La Siofra: Aqueduc de Siofra"
+    ]
+  },
+  {
+    "name": "Gargouille vaillante à la lame double",
+    "locations": [
+      "La Siofra: Aqueduc de Siofra"
+    ]
+  },
+  {
+    "name": "Garrew, chevalier Noir",
+    "locations": [
+      "Altus Occulte: Fort de la faille brumeuse",
+      "Fort de la Faille Brumeuse, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Garris le Nécromancien",
+    "locations": [
+      "Plateau Altus: Cavernes du sage",
+      "Grotte du Sage, Altus"
+    ]
+  },
+  {
+    "name": "Gilika, reine semi-humaine",
+    "locations": [
+      "Plateau Altus: Ruines de Lux"
+    ]
+  },
+  {
+    "name": "Godefroy le Greffé",
+    "locations": [
+      "Plateau Altus: Geôle étern. de la lignée dorée"
+    ]
+  },
+  {
+    "name": "Godfrey, premier Seigneur d'Elden",
+    "locations": [
+      "Leyndell, capitale des cendres: Trône d'Elden",
+      "Leyndell, capitale royale: Sanctuaire de l'Arbre-Monde"
+    ]
+  },
+  {
+    "name": "Godrick le Greffé",
+    "locations": [
+      "Château de Voilorage: Château de Voilorage"
+    ]
+  },
+  {
+    "name": "Golem Fourneau",
+    "locations": [
+      "Ruines Brûlées, Plaine du Tombeau",
+      "Route vers Shadow Keep, Scadu Altus",
+      "Quartier de l'Église, Scadu Altus",
+      "Ruines d'Unte, Scadu Altus",
+      "Tombe Cachée de Charo, Côte Méridionale",
+      "Rivière Ellac, Côte Méridionale",
+      "Ruines Anciennes de Rauh Est",
+      "Est de la Cathédrale de Manus Metyr, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Golem gardien",
+    "locations": [
+      "Nécrolimbe: Cavernes de la Chaussée royale",
+      "Grotte du Grand Chemin, Limgrave"
+    ]
+  },
+  {
+    "name": "Greyll le Dragon volant",
+    "locations": [
+      "Tertre draconique de Greyoll: Tertre draconique de Greyoll",
+      "Pont de Terredragon, Caelid"
+    ]
+  },
+  {
+    "name": "Greyoll, Matriarche des Dragons",
+    "locations": [
+      "Terredragon de Greyoll, Caelid"
+    ]
+  },
+  {
+    "name": "Guerrier Mal Engendré",
+    "locations": [
+      "Château de Crinière-Rouge, Caelid"
+    ]
+  },
+  {
+    "name": "Guerrier Nox",
+    "locations": [
+      "Sellia, Ville de la Sorcellerie, Caelid"
+    ]
+  },
+  {
+    "name": "Géant de feu",
+    "locations": [
+      "Cimes des Géants: Pic de la Flamme"
+    ]
+  },
+  {
+    "name": "Hippopotame doré",
+    "locations": [
+      "Altus Occulte: Château noir"
+    ]
+  },
+  {
+    "name": "Hoarah Loux, le Guerrier",
+    "locations": [
+      "Leyndell, Capitale Cendrée"
+    ]
+  },
+  {
+    "name": "Homme-bête aux couteaux de Farum Azula",
+    "locations": [
+      "Tertre draconique de Greyoll: Cavernes du Tertre draconique"
+    ]
+  },
+  {
+    "name": "Homme-bête de Farum Azula",
+    "locations": [
+      "Nécrolimbe: Grotte du bosquet"
+    ]
+  },
+  {
+    "name": "Homme-bête guerrier de Farum Azula",
+    "locations": [
+      "Tertre draconique de Greyoll: Cavernes du Tertre draconique"
+    ]
+  },
+  {
+    "name": "Homme-dragon ancien",
+    "locations": [
+      "Pic déchiqueté: Fosse au dragon"
+    ]
+  },
+  {
+    "name": "Jori, inquisiteur en chef",
+    "locations": [
+      "Bois abyssaux: Catacombes de la lumière noire"
+    ]
+  },
+  {
+    "name": "Jumeau abominable(x2)",
+    "locations": [
+      "Leyndell, capitale royale: Tour divine d'Altus-Est",
+      "Pont de la Tour Divine d'Altus Est"
+    ]
+  },
+  {
+    "name": "Labirith l'Exécrable",
+    "locations": [
+      "Altus Occulte: Geôles de Bonny",
+      "Geôle de Bonny, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Lancier cristalien",
+    "locations": [
+      "Liurnia, contrée lacustre: Grotte cristalline de l'Académie",
+      "Plateau Altus: Galerie d'Altus"
+    ]
+  },
+  {
+    "name": "Lancier cristalien putride",
+    "locations": [
+      "Caelid: Antre de Sellia"
+    ]
+  },
+  {
+    "name": "Lansseax le Dragon ancien",
+    "locations": [
+      "Plateau Altus: Chemin des remparts",
+      "Plateau d'Altus, Chemin du Rempart"
+    ]
+  },
+  {
+    "name": "Larme imitatrice",
+    "locations": [
+      "La Siofra"
+    ]
+  },
+  {
+    "name": "Larme imitatrice égarée",
+    "locations": [
+      "Champs enneigés consacrés: Chemin secret vers l'Arbre-Sacré",
+      "Chemin Caché vers l'Arbre-Sacré"
+    ]
+  },
+  {
+    "name": "Larmoyeur",
+    "locations": [
+      "Plaine sépulcrale: Geôle de larmoyeur"
+    ]
+  },
+  {
+    "name": "Leda et ses Alliés",
+    "locations": [
+      "Chambre Purificatrice, Enir-Ilim"
+    ]
+  },
+  {
+    "name": "Limier de l'Évergéôle",
+    "locations": [
+      "Évergéôle du Chien Errant, Limgrave"
+    ]
+  },
+  {
+    "name": "Limier de l'Évergéôle (Labyrinthe)",
+    "locations": [
+      "Évergéôle du Chien Errant, Limgrave"
+    ]
+  },
+  {
+    "name": "Lion dansant de la bête divine",
+    "locations": [
+      "Plaine sépulcrale: Belurat, colonie de la tour",
+      "Ruines antiques de Rauh"
+    ]
+  },
+  {
+    "name": "Lionel Cœur-de-Lion",
+    "locations": [
+      "Profondeurs de Fonderacine"
+    ]
+  },
+  {
+    "name": "Logur, la Griffe Bestiale",
+    "locations": [
+      "Plaine du Tombeau Sud-Est"
+    ]
+  },
+  {
+    "name": "Loretta, chevaleresse de l'Arbre-Sacré",
+    "locations": [
+      "Arbre-Sacré de Miquella"
+    ]
+  },
+  {
+    "name": "Loretta, chevaleresse royale",
+    "locations": [
+      "Liurnia, contrée lacustre: Manoir de Caria"
+    ]
+  },
+  {
+    "name": "Loup cramoisi de Radagon",
+    "locations": [
+      "Académie de Raya Lucaria"
+    ]
+  },
+  {
+    "name": "Loup Léonin Géant",
+    "locations": [
+      "Château Morne, Péninsule des Pleurs"
+    ]
+  },
+  {
+    "name": "Loup rouge du champion",
+    "locations": [
+      "Mont Gelmir: Tombe des héros de Gelmir",
+      "Manoir du Volcan, Mt. Gelmir"
+    ]
+  },
+  {
+    "name": "Mage de bataille Hugues",
+    "locations": [
+      "Tertre draconique de Greyoll: Geôle éternelle de Sellia"
+    ]
+  },
+  {
+    "name": "Mage Royal Miriam",
+    "locations": [
+      "Salle d'Étude de Caria, Liurnia"
+    ]
+  },
+  {
+    "name": "Maggie, reine semi-humaine",
+    "locations": [
+      "Mont Gelmir: Village des ermites"
+    ]
+  },
+  {
+    "name": "Makar le Dragon du magma",
+    "locations": [
+      "Liurnia, contrée lacustre: Ruines des falaises",
+      "Précipice Jonché de Ruines, Liurnia"
+    ]
+  },
+  {
+    "name": "Malenia, déesse de la putréfaction",
+    "locations": [
+      "Arbre-Sacré de Miquella",
+      "Elphael, Étreinte de l'Arbre-Sacré"
+    ]
+  },
+  {
+    "name": "Malenia, épée de Miquella",
+    "locations": [
+      "Arbre-Sacré de Miquella",
+      "Elphael, Étreinte de l'Arbre-Sacré"
+    ]
+  },
+  {
+    "name": "Maliketh la Lame d'ébène",
+    "locations": [
+      "Ruines de Farum Azula",
+      "Farum Azula Croulant"
+    ]
+  },
+  {
+    "name": "Margit le Déchu",
+    "locations": [
+      "Château de Voilorage: Château de Voilorage"
+    ]
+  },
+  {
+    "name": "Margot, reine semi-humaine",
+    "locations": [
+      "Mont Gelmir: Grotte volcanique"
+    ]
+  },
+  {
+    "name": "Marigga, reine semi-humaine",
+    "locations": [
+      "Tombeau secret de Charo"
+    ]
+  },
+  {
+    "name": "Messmer l'Empaleur",
+    "locations": [
+      "Altus Occulte: Château noir"
+    ]
+  },
+  {
+    "name": "Messmer, serpent maléfique",
+    "locations": [
+      "Altus Occulte: Château noir"
+    ]
+  },
+  {
+    "name": "Metyr, mère des Doigts",
+    "locations": [
+      "Altus Occulte: Cathédrale de Manus Metyr"
+    ]
+  },
+  {
+    "name": "Midra, seigneur de la Flamme exaltée",
+    "locations": [
+      "Bois abyssaux: Presbytère de Midra"
+    ]
+  },
+  {
+    "name": "Miranda la Fleur galeuse",
+    "locations": [
+      "Plateau Altus: Grotte du Parfumeur",
+      "Péninsule larmoyante: Cavernes du Val-aux-Tombes"
+    ]
+  },
+  {
+    "name": "Miranda la Fleur Putride",
+    "locations": [
+      "Grotte de la Pierre Tombale, Péninsule des Pleurs"
+    ]
+  },
+  {
+    "name": "Miranda la Fleur Vénéneuse",
+    "locations": [
+      "Grotte du Parfumeur, Altus"
+    ]
+  },
+  {
+    "name": "Mohg le Réprouvé",
+    "locations": [
+      "Leyndell, capitale royale: Cathédrale des parias",
+      "Cathédrale des Réprouvés, Égouts Souterrains"
+    ]
+  },
+  {
+    "name": "Mohg, seigneur du sang",
+    "locations": [
+      "Mausolée de la dynastie Mohgwyn",
+      "Palais Mohgwyn"
+    ]
+  },
+  {
+    "name": "Moine nokrien",
+    "locations": [
+      "Caelid: Sellia, cité de la sorcellerie"
+    ]
+  },
+  {
+    "name": "Morgott, roi Réprouvé",
+    "locations": [
+      "Leyndell, capitale royale: Trône d'Elden",
+      "Leyndell, Capitale Royale"
+    ]
+  },
+  {
+    "name": "Noble sanctechair",
+    "locations": [
+      "Cimes des Géants: Grotte du mande-esprit",
+      "Manoir du volcan: Temple d'Eiglay"
+    ]
+  },
+  {
+    "name": "Noble sanglant",
+    "locations": [
+      "Plateau Altus: Ruines Grouille-Sang",
+      "Ruines de Sang Tordu, Altus"
+    ]
+  },
+  {
+    "name": "Nocher diaphane",
+    "locations": [
+      "Liurnia, contrée lacustre",
+      "Nécrolimbe: Village des Eaux nécromantes",
+      "Plateau Altus: Ruines de Wyndham"
+    ]
+  },
+  {
+    "name": "Ombre du cimetière",
+    "locations": [
+      "Caelid: Catacombes de Caelid",
+      "Liurnia, contrée lacustre: Catacombes des Couteaux noirs",
+      "Péninsule larmoyante: Catacombes du Val-aux-Tombes"
+    ]
+  },
+  {
+    "name": "Ombre Funeste",
+    "locations": [
+      "Liurnia, Porte de la Ville Nord (nuit)",
+      "Caelid, Marécage d'Aeonia Sud (nuit)",
+      "Cimes des Géants (nuit)",
+      "Ermitage de l'Apostat, Plaine Enneigée Consacrée (nuit)"
+    ]
+  },
+  {
+    "name": "Onze, épéiste semi-humain",
+    "locations": [
+      "Plaine sépulcrale: Geôles de Belurat"
+    ]
+  },
+  {
+    "name": "Ordovis, chevalier du Creuset",
+    "locations": [
+      "Faubourgs de la capitale: Tombe des héros d'Auriza"
+    ]
+  },
+  {
+    "name": "Ours Géant Ensanglanté",
+    "locations": [
+      "Grotte du Terrier, Terredragon"
+    ]
+  },
+  {
+    "name": "Ours runique",
+    "locations": [
+      "Péninsule larmoyante: Cavernes insondables"
+    ]
+  },
+  {
+    "name": "Ours écarlate",
+    "locations": [
+      "Altus Occulte: Mausolée septentrional sans nom",
+      "Mausolée Sans Nom Septentrional, Rauh Base"
+    ]
+  },
+  {
+    "name": "Parfumeuse Tricia",
+    "locations": [
+      "Plateau Altus: Catacombes des aberrations"
+    ]
+  },
+  {
+    "name": "Pat",
+    "locations": [
+      "Nécrolimbe: Cavernes des eaux noires",
+      "Grotte d'Eau Trouble, Limgrave"
+    ]
+  },
+  {
+    "name": "Placidusax, seigneur draconique",
+    "locations": [
+      "Ruines de Farum Azula: Abords du grand pont"
+    ]
+  },
+  {
+    "name": "Prêtresse Nox",
+    "locations": [
+      "Sellia, Ville de la Sorcellerie, Caelid"
+    ]
+  },
+  {
+    "name": "Radagon de l'Ordre d'or",
+    "locations": [
+      "Leyndell, capitale des cendres: Marika brisée"
+    ]
+  },
+  {
+    "name": "Radahn le Fléau des astres",
+    "locations": [
+      "Caelid: Dunes gémissantes",
+      "Château de Crinière-Rouge, Caelid"
+    ]
+  },
+  {
+    "name": "Radahn, consort de Miquella",
+    "locations": [
+      "Enir-Ilim"
+    ]
+  },
+  {
+    "name": "Radahn, futur consort",
+    "locations": [
+      "Enir-Ilim"
+    ]
+  },
+  {
+    "name": "Rakshasa",
+    "locations": [
+      "Altus Occulte: Mausolée oriental sans nom"
+    ]
+  },
+  {
+    "name": "Ralva, grand ours écarlate",
+    "locations": [
+      "Altus Occulte",
+      "Lac nord-est du Carrefour, Scadu Altus"
+    ]
+  },
+  {
+    "name": "Rapace funeste",
+    "locations": [
+      "Faubourgs de la capitale",
+      "Liurnia, contrée lacustre: Île panoramique",
+      "Nécrolimbe",
+      "Péninsule larmoyante"
+    ]
+  },
+  {
+    "name": "Reine Semi-Humaine",
+    "locations": [
+      "Grotte Côtière, Limgrave"
+    ]
+  },
+  {
+    "name": "Rejeton greffé",
+    "locations": [
+      "Liurnia, contrée lacustre: Chapelle de l'anticipation"
+    ]
+  },
+  {
+    "name": "Rellana, chevaleresse des Lunes jumelles",
+    "locations": [
+      "Plaine sépulcrale: Château d'Ensis"
+    ]
+  },
+  {
+    "name": "Rennala, reine de la pleine lune",
+    "locations": [
+      "Académie de Raya Lucaria"
+    ]
+  },
+  {
+    "name": "Revenant Royal",
+    "locations": [
+      "Ruines du Royaume, Liurnia"
+    ]
+  },
+  {
+    "name": "Rogier le Sorcier",
+    "locations": [
+      "Profondeurs de Fonderacine"
+    ]
+  },
+  {
+    "name": "Roi des Albinauriques",
+    "locations": [
+      "Village des Albinauriques, Liurnia"
+    ]
+  },
+  {
+    "name": "Romina, sainte du bourgeon",
+    "locations": [
+      "Ruines antiques de Rauh: Église du bourgeon"
+    ]
+  },
+  {
+    "name": "Rugalea, grand ours écarlate",
+    "locations": [
+      "Altus Occulte: Base de Rauh",
+      "Rauh Base Nord"
+    ]
+  },
+  {
+    "name": "Rykard, seigneur du blasphème",
+    "locations": [
+      "Manoir du volcan: Manoir du volcan"
+    ]
+  },
+  {
+    "name": "Seigneur d'Albâtre",
+    "locations": [
+      "Évergéôle de la Tombe Royale, Liurnia"
+    ]
+  },
+  {
+    "name": "Seigneur d'onyx",
+    "locations": [
+      "Faubourgs de la capitale: Galerie scellée",
+      "Liurnia, contrée lacustre: Geôle éternelle de la tombe royale"
+    ]
+  },
+  {
+    "name": "Senessax, Dragon ancien",
+    "locations": [
+      "Pic déchiqueté: Flanc du Pic déchiqueté",
+      "Pic Déchiqueté Ouest"
+    ]
+  },
+  {
+    "name": "Sentinelle de l'Arbre",
+    "locations": [
+      "Nécrolimbe: Église d'Elleh",
+      "Panorama occulte: Arrière-pays",
+      "Panorama occulte: Pont de l’Arrière-Pays"
+    ]
+  },
+  {
+    "name": "Sentinelle de l'Arbre(x2)",
+    "locations": [
+      "Plateau Altus"
+    ]
+  },
+  {
+    "name": "Sentinelle draconique de l'Arbre",
+    "locations": [
+      "Faubourgs de la capitale: Rempart de la capitale"
+    ]
+  },
+  {
+    "name": "Serpent dévoreur de dieux",
+    "locations": [
+      "Manoir du volcan: Manoir du volcan"
+    ]
+  },
+  {
+    "name": "Siluria du Creuset",
+    "locations": [
+      "Profondeurs de Fonderacine"
+    ]
+  },
+  {
+    "name": "Sire Gideon Ofnir l'Omniscient",
+    "locations": [
+      "Leyndell, capitale des cendres: Sanctuaire de l'Arbre-Monde"
+    ]
+  },
+  {
+    "name": "Smarag, dragon de pierre d'éclat",
+    "locations": [
+      "Liurnia, contrée lacustre: Quartier du temple"
+    ]
+  },
+  {
+    "name": "Soldat de Godrick",
+    "locations": [
+      "Nécrolimbe: Cimetière abandonné"
+    ]
+  },
+  {
+    "name": "Soldat draconide",
+    "locations": [
+      "L'Ainsel",
+      "La Siofra: Berge de la Siofra"
+    ]
+  },
+  {
+    "name": "Soldat draconide de Nokstella",
+    "locations": [
+      "L'Ainsel"
+    ]
+  },
+  {
+    "name": "Sorcier cristalien",
+    "locations": [
+      "Liurnia, contrée lacustre: Grotte cristalline de l'Académie",
+      "Grotte de Cristal de l'Académie, Liurnia"
+    ]
+  },
+  {
+    "name": "Sorcier cristalien putride",
+    "locations": [
+      "Caelid: Antre de Sellia"
+    ]
+  },
+  {
+    "name": "Spectre royal",
+    "locations": [
+      "Liurnia, contrée lacustre: Ruines du domaine royal"
+    ]
+  },
+  {
+    "name": "Theodorix le Grand ver",
+    "locations": [
+      "Champs enneigés consacrés",
+      "Plaine Enneigée Consacrée"
+    ]
+  },
+  {
+    "name": "Trio de Cristalliens",
+    "locations": [
+      "Planque de Sellia, Caelid"
+    ]
+  },
+  {
+    "name": "Troll Chevalier",
+    "locations": [
+      "Limgrave (monde ouvert)"
+    ]
+  },
+  {
+    "name": "Troll de Pierre",
+    "locations": [
+      "Limgrave (monde ouvert)"
+    ]
+  },
+  {
+    "name": "Troll des Ruines",
+    "locations": [
+      "Limgrave (monde ouvert)"
+    ]
+  },
+  {
+    "name": "Troll fouisseur",
+    "locations": [
+      "Nécrolimbe: Galeries de Nécrolimbe",
+      "Plateau Altus: Vieille galerie d'Altus"
+    ]
+  },
+  {
+    "name": "Tueur de Réprouvés",
+    "locations": [
+      "Liurnia, contrée lacustre: Village des Albinauriques",
+      "Plateau Altus: Grotte du Parfumeur"
+    ]
+  },
+  {
+    "name": "Tête de citrouille démente",
+    "locations": [
+      "Nécrolimbe: Relais en ruines"
+    ]
+  },
+  {
+    "name": "Tête de citrouille démente au fléau d'armes",
+    "locations": [
+      "Caelid: Ruines de Caelem"
+    ]
+  },
+  {
+    "name": "Tête de citrouille démente au marteau",
+    "locations": [
+      "Caelid: Ruines de Caelem"
+    ]
+  },
+  {
+    "name": "Veilleur de l'Arbre-Monde",
+    "locations": [
+      "Liurnia, contrée lacustre: Catacombes au pied des falaises",
+      "Nécrolimbe: Catacombes orageuses",
+      "Plateau Altus: Catacombes de Wyndham",
+      "Péninsule larmoyante: Catacombes de l'Empaleur"
+    ]
+  },
+  {
+    "name": "Veilleur sorcier de l'Arbre-Monde",
+    "locations": [
+      "Caelid: Catacombes de l'Arbre-Monde mineur"
+    ]
+  },
+  {
+    "name": "Veilleur épéiste de l'Arbre-Monde",
+    "locations": [
+      "Caelid: Catacombes de l'Arbre-Monde mineur"
+    ]
+  },
+  {
+    "name": "Vierge ravisseuse aux faucilles",
+    "locations": [
+      "Manoir du volcan: Chambre souterraine de l'Inquisition"
+    ]
+  },
+  {
+    "name": "Vierge ravisseuse aux rouets",
+    "locations": [
+      "Manoir du volcan: Chambre souterraine de l'Inquisition"
+    ]
+  },
+  {
+    "name": "Vierges Ravisseuses",
+    "locations": [
+      "Chambre d'Inquisition, sous le Manoir du Volcan"
+    ]
+  },
+  {
+    "name": "Volatile funèbre",
+    "locations": [
+      "Caelid: Rive sud du marais d'Ivoine",
+      "Champs enneigés consacrés",
+      "Cimes des Géants",
+      "Liurnia, contrée lacustre: Porte nord de la ville",
+      "Tombeau secret de Charo",
+      "Limgrave, Baraque du Maître d'Armes (nuit)",
+      "Péninsule des Pleurs, Château Morne (nuit)",
+      "Liurnia, Île Panoramique (nuit)",
+      "Abords de la Capitale (nuit)"
+    ]
+  },
+  {
+    "name": "Vyke aux Doigts Putréfiés",
+    "locations": [
+      "Église de l'Inhibition, Liurnia"
+    ]
+  },
+  {
+    "name": "Vyke, chevalier de la Table ronde",
+    "locations": [
+      "Cimes des Géants: Geôle éternelle du prétendant",
+      "Évergéôle du Prétendant au Seigneur, Cimes des Géants"
+    ]
+  },
+  {
+    "name": "Éléonora, Danseuse du Sang Putride",
+    "locations": [
+      "Seconde Église de Marika, Altus"
+    ]
+  },
+  {
+    "name": "Épéiste nokrienne",
+    "locations": [
+      "Caelid: Sellia, cité de la sorcellerie"
+    ]
   }
 ]
