@@ -153,6 +153,19 @@ if not errorlevel 1 (
 echo Watcher exited.
 echo [%TIME%] Watcher exited. >> %LOGFILE%
 
+REM Wait extra time for Windows to release all file handles (DLLs, _MEI dir)
+echo Waiting 5s for file handles to be released...
+echo [%TIME%] Waiting 5s for file handle release... >> %LOGFILE%
+timeout /t 5 /nobreak >nul
+
+REM Kill any lingering EldenWatcher processes (zombie child processes)
+tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
+if not errorlevel 1 (
+    echo [%TIME%] WARNING: Found lingering process, killing it... >> %LOGFILE%
+    taskkill /F /IM "{current_exe.name}" >nul 2>&1
+    timeout /t 3 /nobreak >nul
+)
+
 REM List files before update
 echo [%TIME%] Files in directory before update: >> %LOGFILE%
 dir /b "{exe_dir}" >> %LOGFILE% 2>&1
