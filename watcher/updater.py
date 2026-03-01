@@ -135,10 +135,15 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
         # Create batch script for self-update
         # Uses full paths, retry loops, and proper error handling.
         batch_path = exe_dir / "updater.bat"
+        update_log = exe_dir / "updater_debug.log"
         batch_content = f"""@echo off
 cd /d "{exe_dir}"
 
+set LOGFILE="{update_log.name}"
+echo === Update started at %DATE% %TIME% === >> %LOGFILE%
+
 echo Waiting for watcher (PID {current_pid}) to exit...
+echo [%TIME%] Waiting for PID {current_pid} to exit... >> %LOGFILE%
 :WAIT_EXIT
 tasklist /FI "PID eq {current_pid}" 2>nul | find /I "{current_pid}" >nul
 if not errorlevel 1 (
@@ -146,57 +151,89 @@ if not errorlevel 1 (
     goto WAIT_EXIT
 )
 echo Watcher exited.
+echo [%TIME%] Watcher exited. >> %LOGFILE%
+
+REM List files before update
+echo [%TIME%] Files in directory before update: >> %LOGFILE%
+dir /b "{exe_dir}" >> %LOGFILE% 2>&1
 
 REM Delete leftover .old from previous update
 if exist "{old_path.name}" (
-    del /f /q "{old_path.name}" >nul 2>&1
+    echo [%TIME%] Deleting leftover .old file... >> %LOGFILE%
+    del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
     if exist "{old_path.name}" (
         echo WARNING: Could not delete old file, retrying...
+        echo [%TIME%] WARNING: Could not delete .old, retrying... >> %LOGFILE%
         timeout /t 2 /nobreak >nul
-        del /f /q "{old_path.name}" >nul 2>&1
+        del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
     )
 )
 
 REM Rename current exe to .old
 set RETRY=0
 :RENAME_OLD
-ren "{current_exe.name}" "{old_path.name}" >nul 2>&1
+echo [%TIME%] Renaming {current_exe.name} to {old_path.name}... >> %LOGFILE%
+ren "{current_exe.name}" "{old_path.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
     set /a RETRY+=1
     if %RETRY% GEQ 10 (
         echo ERROR: Failed to rename current exe after 10 retries. Aborting.
+        echo [%TIME%] ERROR: Failed to rename after 10 retries >> %LOGFILE%
         goto CLEANUP_FAIL
     )
     echo Retry %RETRY%/10 — file may be locked...
+    echo [%TIME%] Retry %RETRY%/10 - file locked >> %LOGFILE%
     timeout /t 2 /nobreak >nul
     goto RENAME_OLD
 )
+echo [%TIME%] Rename to .old OK >> %LOGFILE%
 
 REM Rename downloaded exe to current name
-ren "{temp_path.name}" "{current_exe.name}" >nul 2>&1
+echo [%TIME%] Renaming {temp_path.name} to {current_exe.name}... >> %LOGFILE%
+ren "{temp_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
     echo ERROR: Failed to rename update file. Rolling back...
-    ren "{old_path.name}" "{current_exe.name}" >nul 2>&1
+    echo [%TIME%] ERROR: Failed to rename update file, rolling back >> %LOGFILE%
+    ren "{old_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
     goto CLEANUP_FAIL
 )
+echo [%TIME%] Rename update file OK >> %LOGFILE%
 
 echo Unblocking exe (remove Windows download security flag)...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
+REM List files after rename
+echo [%TIME%] Files in directory after rename: >> %LOGFILE%
+dir /b "{exe_dir}" >> %LOGFILE% 2>&1
+
+echo [%TIME%] Starting new version... >> %LOGFILE%
 echo Update successful, starting new version...
 start "" "{current_exe}"
+
+REM Wait and check if the new exe is still running
+timeout /t 5 /nobreak >nul
+tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
+if errorlevel 1 (
+    echo [%TIME%] WARNING: New exe does not appear to be running! It may have crashed. >> %LOGFILE%
+    echo [%TIME%] Check watcher logs for ModuleNotFoundError or ImportError details. >> %LOGFILE%
+) else (
+    echo [%TIME%] New exe is running OK >> %LOGFILE%
+)
 
 REM Clean up .old file (best effort)
 timeout /t 3 /nobreak >nul
 del /f /q "{old_path.name}" >nul 2>&1
+
+echo [%TIME%] Update complete. >> %LOGFILE%
 
 REM Delete this script
 del /f /q "%~f0" >nul 2>&1
 exit /b 0
 
 :CLEANUP_FAIL
+echo [%TIME%] Update FAILED. >> %LOGFILE%
 echo Update failed. Cleaning up...
-if exist "{temp_path.name}" del /f /q "{temp_path.name}" >nul 2>&1
+if exist "{temp_path.name}" del /f /q "{temp_path.name}" 2>&1 >> %LOGFILE%
 echo Starting original version...
 if exist "{current_exe.name}" start "" "{current_exe}"
 del /f /q "%~f0" >nul 2>&1

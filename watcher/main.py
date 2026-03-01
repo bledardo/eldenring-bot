@@ -4,22 +4,68 @@ from __future__ import annotations
 
 import os
 import signal
+import sys
 import threading
+import traceback
 import uuid
 from datetime import datetime, timezone
 
-from loguru import logger
+# --- Early import debug: catch ModuleNotFoundError before loguru ---
+def _write_crash_log(error: Exception) -> None:
+    """Write import crash details to a file next to the exe, for debugging updates."""
+    try:
+        if getattr(sys, "frozen", False):
+            log_dir = os.path.dirname(sys.executable)
+        else:
+            log_dir = os.path.dirname(os.path.abspath(__file__))
+        crash_path = os.path.join(log_dir, "crash_import_error.log")
+        with open(crash_path, "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"Crash at {datetime.now().isoformat()}\n")
+            f.write(f"Python: {sys.version}\n")
+            f.write(f"Executable: {sys.executable}\n")
+            f.write(f"Frozen: {getattr(sys, 'frozen', False)}\n")
+            f.write(f"sys.path:\n")
+            for p in sys.path:
+                f.write(f"  {p}\n")
+            f.write(f"\nError type: {type(error).__name__}\n")
+            f.write(f"Error message: {error}\n")
+            if isinstance(error, ModuleNotFoundError):
+                f.write(f"Module name: {error.name}\n")
+            f.write(f"\nFull traceback:\n")
+            f.write(traceback.format_exc())
+            f.write(f"{'='*60}\n")
+    except Exception:
+        pass  # Last resort — nothing we can do
 
-from watcher import __version__
-from watcher.config import load_config
-from watcher.event_queue import EventQueue
-from watcher.http_client import WatcherHttpClient
-from watcher.logger import setup_logging
-from watcher.paths import configure_tesseract
-from watcher.process_monitor import ProcessMonitor
-from watcher.tray import TrayApp, TrayStatus
-from watcher.updater import check_for_update, download_and_replace
-from watcher.watcher import Watcher
+try:
+    from loguru import logger
+    from watcher import __version__
+    from watcher.config import load_config
+    from watcher.event_queue import EventQueue
+    from watcher.http_client import WatcherHttpClient
+    from watcher.logger import setup_logging
+    from watcher.paths import configure_tesseract
+    from watcher.process_monitor import ProcessMonitor
+    from watcher.tray import TrayApp, TrayStatus
+    from watcher.updater import check_for_update, download_and_replace
+    from watcher.watcher import Watcher
+except (ModuleNotFoundError, ImportError) as _import_err:
+    _write_crash_log(_import_err)
+    # Also show a message box on Windows so the user sees something
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(
+            0,
+            f"Erreur au démarrage : module '{_import_err.name}' introuvable.\n\n"
+            f"Détails écrits dans crash_import_error.log\n"
+            f"(à côté de l'exe)",
+            "Elden Ring Watcher - Erreur",
+            0x10,  # MB_ICONERROR
+        )
+    except Exception:
+        pass
+    sys.exit(1)
 
 
 def main() -> None:
