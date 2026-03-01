@@ -32,11 +32,7 @@ def _parse_version(version_str: str) -> tuple[int, ...]:
 
 
 def check_for_update(timeout: float = 5.0) -> dict | None:
-    """Check GitHub Releases for a newer version.
-
-    Returns:
-        Dict with version, download_url, release_notes if update available, None otherwise.
-    """
+    """Check GitHub Releases for a newer version."""
     try:
         url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
         response = requests.get(url, timeout=timeout, headers={"Accept": "application/vnd.github.v3+json"})
@@ -54,7 +50,6 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
             logger.debug("No update available (current={}, latest={})", CURRENT_VERSION, latest_tag)
             return None
 
-        # Find .exe asset
         download_url = None
         expected_size = None
         for asset in data.get("assets", []):
@@ -83,15 +78,8 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
 def download_and_replace(download_url: str, expected_size: int | None = None) -> bool:
     """Download new exe and create self-update batch script.
 
-    Flow:
-    1. Waits for current process to exit
-    2. Deletes the old _MEI temp directory (avoids DLL conflicts)
-    3. Renames current exe to .old, new exe to current name
-    4. Launches new exe (clean _MEI extraction)
-    5. Cleans up
-
-    Returns:
-        True if update initiated (app will exit), False on failure.
+    Flow: download → exit process → batch waits → delete old _MEI →
+    rename exes → launch new exe via explorer.exe (simulates double-click)
     """
     try:
         current_exe = Path(sys.executable).resolve()
@@ -102,8 +90,6 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
         exe_dir = current_exe.parent
         old_path = exe_dir / f"{current_exe.stem}.old"
         temp_path = exe_dir / f"{current_exe.stem}_update.exe"
-
-        # Get the _MEIPASS temp directory path (PyInstaller onefile extraction dir)
         mei_path = getattr(sys, "_MEIPASS", "")
 
         logger.info("Downloading update from {}", download_url)
@@ -114,152 +100,71 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
-        # Verify download integrity (size check)
         actual_size = temp_path.stat().st_size
         if expected_size is not None and actual_size != expected_size:
-            logger.error(
-                "Download corrupted: expected {} bytes, got {} bytes",
-                expected_size, actual_size,
-            )
+            logger.error("Download corrupted: expected {} bytes, got {} bytes", expected_size, actual_size)
             temp_path.unlink(missing_ok=True)
             return False
-        logger.info("Update downloaded to {} ({} bytes, verified)", temp_path, actual_size)
+        logger.info("Update downloaded ({} bytes, verified)", actual_size)
 
         current_pid = os.getpid()
         batch_path = exe_dir / "updater.bat"
-        update_log = exe_dir / "updater_debug.log"
 
         batch_content = f"""@echo off
 cd /d "{exe_dir}"
 
-set LOGFILE="{update_log.name}"
-echo === Update started at %DATE% %TIME% === >> %LOGFILE%
-
-echo Waiting for watcher (PID {current_pid}) to exit...
-echo [%TIME%] Waiting for PID {current_pid} to exit... >> %LOGFILE%
 :WAIT_EXIT
 tasklist /FI "PID eq {current_pid}" 2>nul | find /I "{current_pid}" >nul
 if not errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto WAIT_EXIT
 )
-echo [%TIME%] Watcher exited. >> %LOGFILE%
 
-REM Kill any lingering EldenWatcher processes
+REM Kill any lingering processes
 tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
 if not errorlevel 1 (
-    echo [%TIME%] Killing lingering process... >> %LOGFILE%
     taskkill /F /IM "{current_exe.name}" >nul 2>&1
     timeout /t 2 /nobreak >nul
 )
 
-REM Delete the old _MEI temp directory to avoid DLL conflicts on next launch
+REM Delete old _MEI temp directory
 if "{mei_path}" NEQ "" (
-    if exist "{mei_path}" (
-        echo [%TIME%] Deleting old _MEI dir: {mei_path} >> %LOGFILE%
-        rmdir /s /q "{mei_path}" 2>&1 >> %LOGFILE%
-        if exist "{mei_path}" (
-            echo [%TIME%] WARNING: Could not fully delete _MEI, retrying... >> %LOGFILE%
-            timeout /t 2 /nobreak >nul
-            rmdir /s /q "{mei_path}" 2>&1 >> %LOGFILE%
-        )
-        echo [%TIME%] _MEI cleanup done >> %LOGFILE%
-    )
+    if exist "{mei_path}" rmdir /s /q "{mei_path}" >nul 2>&1
 )
 
-REM Delete leftover .old from previous update
-if exist "{old_path.name}" (
-    echo [%TIME%] Deleting leftover .old file... >> %LOGFILE%
-    del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
-)
+REM Delete leftover .old
+if exist "{old_path.name}" del /f /q "{old_path.name}" >nul 2>&1
 
 REM Rename current exe to .old
 set RETRY=0
 :RENAME_OLD
-echo [%TIME%] Renaming {current_exe.name} to {old_path.name}... >> %LOGFILE%
-ren "{current_exe.name}" "{old_path.name}" 2>&1 >> %LOGFILE%
+ren "{current_exe.name}" "{old_path.name}" >nul 2>&1
 if errorlevel 1 (
     set /a RETRY+=1
-    if %RETRY% GEQ 10 (
-        echo [%TIME%] ERROR: Failed to rename after 10 retries >> %LOGFILE%
-        goto CLEANUP_FAIL
-    )
-    echo [%TIME%] Retry %RETRY%/10 - file locked >> %LOGFILE%
+    if %RETRY% GEQ 10 goto CLEANUP_FAIL
     timeout /t 2 /nobreak >nul
     goto RENAME_OLD
 )
-echo [%TIME%] Rename to .old OK >> %LOGFILE%
 
 REM Rename downloaded exe to current name
-echo [%TIME%] Renaming {temp_path.name} to {current_exe.name}... >> %LOGFILE%
-ren "{temp_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
+ren "{temp_path.name}" "{current_exe.name}" >nul 2>&1
 if errorlevel 1 (
-    echo [%TIME%] ERROR: Failed to rename update file, rolling back >> %LOGFILE%
-    ren "{old_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
+    ren "{old_path.name}" "{current_exe.name}" >nul 2>&1
     goto CLEANUP_FAIL
 )
-echo [%TIME%] Rename update file OK >> %LOGFILE%
 
-echo Unblocking exe...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
-REM === DIAGNOSTIC: log everything about the new exe before launch ===
-echo [%TIME%] === PRE-LAUNCH DIAGNOSTIC === >> %LOGFILE%
-echo [%TIME%] New exe path: {current_exe} >> %LOGFILE%
-echo [%TIME%] New exe size: >> %LOGFILE%
-for %%A in ("{current_exe.name}") do echo   %%~zA bytes >> %LOGFILE%
-echo [%TIME%] New exe exists: >> %LOGFILE%
-if exist "{current_exe.name}" (echo   YES >> %LOGFILE%) else (echo   NO >> %LOGFILE%)
-
-echo [%TIME%] Checking Zone.Identifier ADS: >> %LOGFILE%
-more < "{current_exe.name}:Zone.Identifier" >> %LOGFILE% 2>&1
-if errorlevel 1 echo   No Zone.Identifier (good) >> %LOGFILE%
-
-echo [%TIME%] All _MEI dirs in TEMP before launch: >> %LOGFILE%
-dir /b /ad "%TEMP%\\_MEI*" >> %LOGFILE% 2>&1
-if errorlevel 1 echo   None found (good) >> %LOGFILE%
-
-echo [%TIME%] Files in exe directory: >> %LOGFILE%
-dir /b "{exe_dir}" >> %LOGFILE% 2>&1
-
-echo [%TIME%] Windows Defender status: >> %LOGFILE%
-powershell -Command "Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,IoavProtectionEnabled | Format-List" >> %LOGFILE% 2>&1
-
-echo [%TIME%] === LAUNCHING NEW EXE === >> %LOGFILE%
+REM Launch via explorer.exe (simulates double-click, avoids DLL issues)
 explorer.exe "{current_exe}"
 
-REM Wait and check what happened
-timeout /t 10 /nobreak >nul
-
-echo [%TIME%] === POST-LAUNCH DIAGNOSTIC === >> %LOGFILE%
-echo [%TIME%] Process running check: >> %LOGFILE%
-tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul >> %LOGFILE%
-
-echo [%TIME%] All _MEI dirs in TEMP after launch: >> %LOGFILE%
-dir /b /ad "%TEMP%\\_MEI*" >> %LOGFILE% 2>&1
-if errorlevel 1 echo   None found >> %LOGFILE%
-
-REM For each _MEI dir, check if python311.dll and vcruntime140.dll exist
-for /d %%D in ("%TEMP%\\_MEI*") do (
-    echo [%TIME%] Checking %%D: >> %LOGFILE%
-    if exist "%%D\\python311.dll" (echo   python311.dll: YES >> %LOGFILE%) else (echo   python311.dll: NO >> %LOGFILE%)
-    if exist "%%D\\vcruntime140.dll" (echo   vcruntime140.dll: YES >> %LOGFILE%) else (echo   vcruntime140.dll: NO >> %LOGFILE%)
-    if exist "%%D\\vcruntime140_1.dll" (echo   vcruntime140_1.dll: YES >> %LOGFILE%) else (echo   vcruntime140_1.dll: NO >> %LOGFILE%)
-    echo   All DLLs in dir: >> %LOGFILE%
-    dir /b "%%D\\*.dll" >> %LOGFILE% 2>&1
-)
-
-REM Clean up .old file (best effort)
-timeout /t 3 /nobreak >nul
+timeout /t 5 /nobreak >nul
 del /f /q "{old_path.name}" >nul 2>&1
-
-echo [%TIME%] Update complete. >> %LOGFILE%
 del /f /q "%~f0" >nul 2>&1
 exit /b 0
 
 :CLEANUP_FAIL
-echo [%TIME%] Update FAILED. >> %LOGFILE%
-if exist "{temp_path.name}" del /f /q "{temp_path.name}" 2>&1 >> %LOGFILE%
+if exist "{temp_path.name}" del /f /q "{temp_path.name}" >nul 2>&1
 if exist "{current_exe.name}" explorer.exe "{current_exe}"
 del /f /q "%~f0" >nul 2>&1
 exit /b 1
@@ -267,11 +172,11 @@ exit /b 1
         with open(batch_path, "w") as f:
             f.write(batch_content)
 
-        logger.info("Launching updater script (MEI path: {})", mei_path)
+        logger.info("Launching updater script...")
         subprocess.Popen(
             ["cmd", "/c", str(batch_path)],
             cwd=str(exe_dir),
-            creationflags=subprocess.CREATE_NEW_CONSOLE if hasattr(subprocess, "CREATE_NEW_CONSOLE") else 0,
+            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, "CREATE_NO_WINDOW") else 0x08000000,
         )
         return True
 
