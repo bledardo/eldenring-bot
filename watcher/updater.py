@@ -204,7 +204,7 @@ echo Unblocking exe...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
 echo [%TIME%] Starting new version... >> %LOGFILE%
-start "" "{current_exe}"
+explorer.exe "{current_exe}"
 
 REM Clean up .old file (best effort)
 timeout /t 5 /nobreak >nul
@@ -217,7 +217,7 @@ exit /b 0
 :CLEANUP_FAIL
 echo [%TIME%] Update FAILED. >> %LOGFILE%
 if exist "{temp_path.name}" del /f /q "{temp_path.name}" 2>&1 >> %LOGFILE%
-if exist "{current_exe.name}" start "" "{current_exe}"
+if exist "{current_exe.name}" explorer.exe "{current_exe}"
 del /f /q "%~f0" >nul 2>&1
 exit /b 1
 """
