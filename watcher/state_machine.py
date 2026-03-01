@@ -6,6 +6,7 @@ phase_transition_window and cooldown use real timestamps, not frame counts.
 
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable
 from enum import Enum
@@ -62,6 +63,7 @@ class BossFightFSM:
         # Internal tracking
         self._confirm_count: int = 0
         self._current_boss: str | None = None
+        self._encounter_notified: bool = False  # True once encounter callback fired
         self._resolution_start: float | None = None
         self._cooldown_start: float | None = None
         self._bar_gone_start: float | None = None
@@ -125,12 +127,14 @@ class BossFightFSM:
                 self._transition_to(FightState.ACTIVE_FIGHT)
                 boss = self._current_boss or "Unknown Boss"
                 logger.info("Boss encounter confirmed: {}", boss)
+                self._encounter_notified = True
                 self._on_encounter(boss)
         else:
             # Flicker — bar disappeared before confirmation
             logger.debug("Encounter pending reset (flicker after {} frames)", self._confirm_count)
             self._confirm_count = 0
             self._current_boss = None
+            self._encounter_notified = False
             self._transition_to(FightState.IDLE)
 
     def _handle_active_fight(
@@ -186,8 +190,10 @@ class BossFightFSM:
         """
         if not name or name == "Unknown Boss":
             return False
+        # Strip multiplier suffixes like (x2), (x3) before digit check
+        cleaned = re.sub(r'\(x\d+\)$', '', name)
         # Digits → garbage OCR
-        if any(c.isdigit() for c in name):
+        if any(c.isdigit() for c in cleaned):
             return False
         # Too many ALL-CAPS tokens → garbage OCR
         tokens = name.split()
@@ -239,11 +245,11 @@ class BossFightFSM:
             return
 
         # Auto-abandon after timeout to prevent stuck state
-        # Shorter timeout for garbage OCR names — real kill text appears within 5s
+        # Shorter timeout for unconfirmed/garbage names — full timeout if encounter was notified
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
             effective_timeout = self.resolve_timeout  # 90s default
-            if self._current_boss and not self._is_valid_boss_name(self._current_boss):
+            if not self._encounter_notified:
                 effective_timeout = 15.0
             if elapsed >= effective_timeout:
                 boss = self._current_boss or "Unknown Boss"
@@ -267,6 +273,7 @@ class BossFightFSM:
                 logger.debug("Cooldown expired, returning to IDLE")
                 self._cooldown_start = None
                 self._current_boss = None
+                self._encounter_notified = False
                 self._confirm_count = 0
                 self._transition_to(FightState.IDLE)
 
@@ -282,6 +289,7 @@ class BossFightFSM:
             self._resolution_start = None
             self._cooldown_start = None
             self._current_boss = None
+            self._encounter_notified = False
             self._confirm_count = 0
             self.state = FightState.IDLE
 
