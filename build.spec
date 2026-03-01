@@ -8,9 +8,14 @@ Expected exe size: ~50-100MB (much smaller without PyTorch).
 import sys
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_submodules
+
 # Import build helper for Tesseract data
 sys.path.insert(0, str(Path(SPECPATH)))
 from build import get_tesseract_datas
+
+# Collect ALL numpy submodules (compiled C extensions are often missed)
+numpy_hiddenimports = collect_submodules("numpy")
 
 # Collect Tesseract data and binaries
 tesseract_datas, tesseract_binaries = get_tesseract_datas()
@@ -24,16 +29,13 @@ a = Analysis(
         ("watcher/assets/templates", "watcher/assets/templates"),
     ]
     + tesseract_datas,
-    hiddenimports=[
+    hiddenimports=numpy_hiddenimports + [
         # OCR
         "pytesseract",
         # Image processing
         "PIL",
         "PIL.Image",
         "cv2",
-        # NumPy internals (PyInstaller misses compiled C extensions)
-        "numpy.linalg._umath_linalg",
-        "numpy.linalg.lapack_lite",
         # System tray (Windows-specific)
         "pystray._win32",
         # Windows APIs
