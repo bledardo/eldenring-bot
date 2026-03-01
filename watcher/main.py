@@ -146,16 +146,60 @@ def main() -> None:
     except Exception:
         logger.warning("Auto-update check failed, continuing with current version")
 
-    # Start periodic queue flush thread
+    # Start periodic queue flush thread (also acts as watchdog)
+    import time as _time
+
+    WATCHDOG_STALE_THRESHOLD = 120.0  # seconds without a frame before restart
+
+    def _restart_watcher(reason: str) -> None:
+        """Restart the watcher thread after an unexpected stop."""
+        nonlocal watcher_thread, session_id
+        logger.warning("Watchdog: restarting watcher ({})", reason)
+
+        # Clean up the old watcher
+        try:
+            watcher_instance.stop()
+        except Exception:
+            pass
+
+        # Send session_end for the dead session
+        _send_session_end()
+
+        # Re-detect the game PID
+        from watcher.process_monitor import find_game_pid
+        pid = find_game_pid(config.game_process)
+        if pid is None:
+            logger.warning("Watchdog: game process not found, cannot restart watcher")
+            return
+
+        session_id = str(uuid.uuid4())
+        logger.info("Watchdog: respawning watcher (PID: {}, session: {})", pid, session_id)
+        watcher_thread = threading.Thread(
+            target=watcher_instance.start,
+            args=(pid, session_id),
+            daemon=True,
+        )
+        watcher_thread.start()
+
     def flush_loop() -> None:
         while not shutdown_requested:
             try:
                 http_client.flush_queue()
             except Exception as exc:
                 logger.debug("Queue flush error: {}", exc)
-            # Check watcher thread health
-            if watcher_thread is not None and not watcher_thread.is_alive():
-                logger.error("Watcher thread died unexpectedly!")
+            # Watchdog: check watcher thread health
+            if watcher_thread is not None:
+                if not watcher_thread.is_alive():
+                    logger.error("Watchdog: watcher thread died unexpectedly!")
+                    _restart_watcher("thread dead")
+                elif watcher_instance.last_frame_time > 0:
+                    stale = _time.time() - watcher_instance.last_frame_time
+                    if stale > WATCHDOG_STALE_THRESHOLD:
+                        logger.error(
+                            "Watchdog: no frame processed for {:.0f}s (threshold: {:.0f}s)",
+                            stale, WATCHDOG_STALE_THRESHOLD,
+                        )
+                        _restart_watcher("detection loop stale")
             # Sleep in small increments to respond to shutdown
             for _ in range(60):  # 30 seconds (60 * 0.5s)
                 if shutdown_requested:

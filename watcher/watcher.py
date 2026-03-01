@@ -140,6 +140,7 @@ class Watcher:
         self._resolving_debug_count: int = 0
         self._resolving_gold_saved: bool = False
         self._current_boss_is_fallback: bool = False
+        self.last_frame_time: float = 0.0  # Updated every loop iteration (for watchdog)
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
         """Start the detection loop.
@@ -168,6 +169,7 @@ class Watcher:
     def stop(self) -> None:
         """Stop the detection loop."""
         self._running = False
+        self.last_frame_time = 0.0  # Reset so watchdog doesn't trigger after stop
         self._fsm.force_abandon()
         self._capture.cleanup()
         self._tray.set_status(TrayStatus.NO_GAME)
@@ -182,6 +184,7 @@ class Watcher:
         while self._running:
             try:
                 frame_start = time.perf_counter()
+                self.last_frame_time = time.time()
 
                 # Check game focus — skip detection when unfocused to avoid
                 # false positives from stale/transitional frames (e.g. alt-tab).

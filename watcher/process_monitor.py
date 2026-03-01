@@ -9,6 +9,28 @@ import psutil
 from loguru import logger
 
 
+def find_game_pid(game_process: str) -> int | None:
+    """Find the PID of a game process by name (standalone helper).
+
+    Args:
+        game_process: Process name to look for (e.g. "eldenring.exe").
+
+    Returns:
+        The PID if found, None otherwise.
+    """
+    target = game_process.lower()
+    try:
+        for proc in psutil.process_iter(["name", "pid"]):
+            try:
+                if proc.info["name"] and proc.info["name"].lower() == target:
+                    return proc.info["pid"]
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception as exc:
+        logger.warning("Error scanning processes: {}", exc)
+    return None
+
+
 class ProcessMonitor:
     """Monitors for game process start/stop events.
 
