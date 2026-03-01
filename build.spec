@@ -2,7 +2,7 @@
 """PyInstaller spec file for Elden Ring Watcher.
 
 Bundles all dependencies including Tesseract OCR and OpenCV.
-Expected exe size: ~50-100MB (much smaller without PyTorch).
+Uses --onedir mode for reliable updates (no _MEI temp extraction).
 """
 
 import sys
@@ -103,24 +103,28 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+# --onedir mode: exe + DLLs in a folder (no _MEI temp extraction)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name="EldenWatcher",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    upx_exclude=[],
-    runtime_tmpdir='.',
     icon="watcher/assets/icon.ico",
     console=False,  # GUI app — no console window
     disable_windowed_traceback=False,
     argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=False,
+    name="EldenWatcher",
 )

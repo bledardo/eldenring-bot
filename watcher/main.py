@@ -10,9 +10,6 @@ import traceback
 import uuid
 from datetime import datetime, timezone
 
-
-
-
 # --- Early import debug: catch ModuleNotFoundError before loguru ---
 def _write_crash_log(error: Exception) -> None:
     """Write import crash details to a file next to the exe, for debugging updates."""
