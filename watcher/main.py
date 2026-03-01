@@ -14,9 +14,8 @@ from datetime import datetime, timezone
 def _cleanup_mei_dirs() -> None:
     """Remove leftover _MEI* dirs from previous PyInstaller runs.
 
-    PyInstaller extracts to %TEMP%/_MEI<pid>. After an update, the old
-    directory may fail to be cleaned up (files locked). We clean them
-    on next startup — skipping our own current _MEI directory.
+    Only removes dirs older than 5 minutes to avoid deleting the _MEI
+    of the old process that may still be shutting down during an update.
     """
     if not getattr(sys, "frozen", False):
         return
@@ -24,21 +23,25 @@ def _cleanup_mei_dirs() -> None:
         import glob
         import shutil
         import tempfile
+        import time
 
         temp_dir = tempfile.gettempdir()
-        # Our own _MEI directory (must not delete)
         own_mei = getattr(sys, "_MEIPASS", "")
+        now = time.time()
+        min_age = 300  # 5 minutes
         cleaned = 0
         for mei in glob.glob(os.path.join(temp_dir, "_MEI*")):
             if os.path.normcase(mei) == os.path.normcase(own_mei):
                 continue
             try:
+                age = now - os.path.getmtime(mei)
+                if age < min_age:
+                    continue  # Too recent — old process may still be alive
                 shutil.rmtree(mei)
                 cleaned += 1
             except Exception:
-                pass  # Still locked — skip
+                pass
         if cleaned:
-            # Can't use logger yet, print to stderr
             print(f"[startup] Cleaned {cleaned} stale _MEI temp dir(s)", file=sys.stderr)
     except Exception:
         pass
