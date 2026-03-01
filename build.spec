@@ -31,6 +31,9 @@ a = Analysis(
         "PIL",
         "PIL.Image",
         "cv2",
+        # NumPy internals (PyInstaller misses compiled C extensions)
+        "numpy.linalg._umath_linalg",
+        "numpy.linalg.lapack_lite",
         # System tray (Windows-specific)
         "pystray._win32",
         # Windows APIs
