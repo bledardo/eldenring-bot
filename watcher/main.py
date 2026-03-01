@@ -10,6 +10,42 @@ import traceback
 import uuid
 from datetime import datetime, timezone
 
+# --- Clean up stale PyInstaller _MEI* temp directories ---
+def _cleanup_mei_dirs() -> None:
+    """Remove leftover _MEI* dirs from previous PyInstaller runs.
+
+    PyInstaller extracts to %TEMP%/_MEI<pid>. After an update, the old
+    directory may fail to be cleaned up (files locked). We clean them
+    on next startup — skipping our own current _MEI directory.
+    """
+    if not getattr(sys, "frozen", False):
+        return
+    try:
+        import glob
+        import shutil
+        import tempfile
+
+        temp_dir = tempfile.gettempdir()
+        # Our own _MEI directory (must not delete)
+        own_mei = getattr(sys, "_MEIPASS", "")
+        cleaned = 0
+        for mei in glob.glob(os.path.join(temp_dir, "_MEI*")):
+            if os.path.normcase(mei) == os.path.normcase(own_mei):
+                continue
+            try:
+                shutil.rmtree(mei)
+                cleaned += 1
+            except Exception:
+                pass  # Still locked — skip
+        if cleaned:
+            # Can't use logger yet, print to stderr
+            print(f"[startup] Cleaned {cleaned} stale _MEI temp dir(s)", file=sys.stderr)
+    except Exception:
+        pass
+
+_cleanup_mei_dirs()
+
+
 # --- Early import debug: catch ModuleNotFoundError before loguru ---
 def _write_crash_log(error: Exception) -> None:
     """Write import crash details to a file next to the exe, for debugging updates."""
