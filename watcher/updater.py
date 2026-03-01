@@ -215,26 +215,30 @@ echo [%TIME%] Rename update file OK >> %LOGFILE%
 echo Unblocking exe (remove Windows download security flag)...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
-REM Pre-scan with Windows Defender so first launch doesn't get blocked
-echo [%TIME%] Pre-scanning exe with Windows Defender... >> %LOGFILE%
-echo Scanning new exe with Windows Defender...
-"%ProgramFiles%\\Windows Defender\\MpCmdRun.exe" -Scan -ScanType 3 -File "{current_exe}" >nul 2>&1
-echo [%TIME%] Defender scan done (exit code: %ERRORLEVEL%) >> %LOGFILE%
-
 REM List files after rename
 echo [%TIME%] Files in directory after rename: >> %LOGFILE%
 dir /b "{exe_dir}" >> %LOGFILE% 2>&1
 
 echo [%TIME%] Starting new version... >> %LOGFILE%
 echo Update successful, starting new version...
+
+REM Try launching with retries (Windows Defender may block DLL extraction)
+set LAUNCH_RETRY=0
+:LAUNCH_LOOP
+set /a LAUNCH_RETRY+=1
+echo [%TIME%] Launch attempt %LAUNCH_RETRY%/3... >> %LOGFILE%
 start "" "{current_exe}"
 
-timeout /t 5 /nobreak >nul
+timeout /t 8 /nobreak >nul
 tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
 if errorlevel 1 (
-    echo [%TIME%] WARNING: First launch failed, retrying... >> %LOGFILE%
-    timeout /t 5 /nobreak >nul
-    start "" "{current_exe}"
+    echo [%TIME%] WARNING: New exe not running after attempt %LAUNCH_RETRY% >> %LOGFILE%
+    if %LAUNCH_RETRY% LSS 3 (
+        echo [%TIME%] Retrying in 5s... >> %LOGFILE%
+        timeout /t 5 /nobreak >nul
+        goto LAUNCH_LOOP
+    )
+    echo [%TIME%] FAILED: New exe did not start after 3 attempts >> %LOGFILE%
 ) else (
     echo [%TIME%] New exe is running OK >> %LOGFILE%
 )
