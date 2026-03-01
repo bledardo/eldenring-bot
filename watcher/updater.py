@@ -17,7 +17,6 @@ from loguru import logger
 
 from watcher import __version__
 
-# Placeholder — user sets this to their actual repo
 GITHUB_REPO = "bledardo/eldenring-bot"
 
 CURRENT_VERSION = __version__
@@ -34,9 +33,6 @@ def _parse_version(version_str: str) -> tuple[int, ...]:
 
 def check_for_update(timeout: float = 5.0) -> dict | None:
     """Check GitHub Releases for a newer version.
-
-    Args:
-        timeout: HTTP request timeout in seconds.
 
     Returns:
         Dict with version, download_url, release_notes if update available, None otherwise.
@@ -87,16 +83,12 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
 def download_and_replace(download_url: str, expected_size: int | None = None) -> bool:
     """Download new exe and create self-update batch script.
 
-    The batch script:
-    1. Waits for current process to fully exit (retry loop)
-    2. Deletes any leftover .old from a previous update
-    3. Renames current exe to .old
-    4. Renames downloaded exe to current name
-    5. Launches new exe
-    6. Cleans up .old and deletes itself
-
-    Args:
-        download_url: URL of the new .exe to download.
+    Flow:
+    1. Waits for current process to exit
+    2. Deletes the old _MEI temp directory (avoids DLL conflicts)
+    3. Renames current exe to .old, new exe to current name
+    4. Launches new exe (clean _MEI extraction)
+    5. Cleans up
 
     Returns:
         True if update initiated (app will exit), False on failure.
@@ -110,6 +102,9 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
         exe_dir = current_exe.parent
         old_path = exe_dir / f"{current_exe.stem}.old"
         temp_path = exe_dir / f"{current_exe.stem}_update.exe"
+
+        # Get the _MEIPASS temp directory path (PyInstaller onefile extraction dir)
+        mei_path = getattr(sys, "_MEIPASS", "")
 
         logger.info("Downloading update from {}", download_url)
         response = requests.get(download_url, stream=True, timeout=60)
@@ -131,11 +126,9 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
         logger.info("Update downloaded to {} ({} bytes, verified)", temp_path, actual_size)
 
         current_pid = os.getpid()
-
-        # Create batch script for self-update
-        # Uses full paths, retry loops, and proper error handling.
         batch_path = exe_dir / "updater.bat"
         update_log = exe_dir / "updater_debug.log"
+
         batch_content = f"""@echo off
 cd /d "{exe_dir}"
 
@@ -150,36 +143,34 @@ if not errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto WAIT_EXIT
 )
-echo Watcher exited.
 echo [%TIME%] Watcher exited. >> %LOGFILE%
 
-REM Wait extra time for Windows to release all file handles (DLLs, _MEI dir)
-echo Waiting 5s for file handles to be released...
-echo [%TIME%] Waiting 5s for file handle release... >> %LOGFILE%
-timeout /t 5 /nobreak >nul
-
-REM Kill any lingering EldenWatcher processes (zombie child processes)
+REM Kill any lingering EldenWatcher processes
 tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
 if not errorlevel 1 (
-    echo [%TIME%] WARNING: Found lingering process, killing it... >> %LOGFILE%
+    echo [%TIME%] Killing lingering process... >> %LOGFILE%
     taskkill /F /IM "{current_exe.name}" >nul 2>&1
-    timeout /t 3 /nobreak >nul
+    timeout /t 2 /nobreak >nul
 )
 
-REM List files before update
-echo [%TIME%] Files in directory before update: >> %LOGFILE%
-dir /b "{exe_dir}" >> %LOGFILE% 2>&1
+REM Delete the old _MEI temp directory to avoid DLL conflicts on next launch
+if "{mei_path}" NEQ "" (
+    if exist "{mei_path}" (
+        echo [%TIME%] Deleting old _MEI dir: {mei_path} >> %LOGFILE%
+        rmdir /s /q "{mei_path}" 2>&1 >> %LOGFILE%
+        if exist "{mei_path}" (
+            echo [%TIME%] WARNING: Could not fully delete _MEI, retrying... >> %LOGFILE%
+            timeout /t 2 /nobreak >nul
+            rmdir /s /q "{mei_path}" 2>&1 >> %LOGFILE%
+        )
+        echo [%TIME%] _MEI cleanup done >> %LOGFILE%
+    )
+)
 
 REM Delete leftover .old from previous update
 if exist "{old_path.name}" (
     echo [%TIME%] Deleting leftover .old file... >> %LOGFILE%
     del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
-    if exist "{old_path.name}" (
-        echo WARNING: Could not delete old file, retrying...
-        echo [%TIME%] WARNING: Could not delete .old, retrying... >> %LOGFILE%
-        timeout /t 2 /nobreak >nul
-        del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
-    )
 )
 
 REM Rename current exe to .old
@@ -190,11 +181,9 @@ ren "{current_exe.name}" "{old_path.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
     set /a RETRY+=1
     if %RETRY% GEQ 10 (
-        echo ERROR: Failed to rename current exe after 10 retries. Aborting.
         echo [%TIME%] ERROR: Failed to rename after 10 retries >> %LOGFILE%
         goto CLEANUP_FAIL
     )
-    echo Retry %RETRY%/10 — file may be locked...
     echo [%TIME%] Retry %RETRY%/10 - file locked >> %LOGFILE%
     timeout /t 2 /nobreak >nul
     goto RENAME_OLD
@@ -205,59 +194,29 @@ REM Rename downloaded exe to current name
 echo [%TIME%] Renaming {temp_path.name} to {current_exe.name}... >> %LOGFILE%
 ren "{temp_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
-    echo ERROR: Failed to rename update file. Rolling back...
     echo [%TIME%] ERROR: Failed to rename update file, rolling back >> %LOGFILE%
     ren "{old_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
     goto CLEANUP_FAIL
 )
 echo [%TIME%] Rename update file OK >> %LOGFILE%
 
-echo Unblocking exe (remove Windows download security flag)...
+echo Unblocking exe...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
-REM List files after rename
-echo [%TIME%] Files in directory after rename: >> %LOGFILE%
-dir /b "{exe_dir}" >> %LOGFILE% 2>&1
-
 echo [%TIME%] Starting new version... >> %LOGFILE%
-echo Update successful, starting new version...
-
-REM Try launching with retries (Windows Defender may block DLL extraction)
-set LAUNCH_RETRY=0
-:LAUNCH_LOOP
-set /a LAUNCH_RETRY+=1
-echo [%TIME%] Launch attempt %LAUNCH_RETRY%/3... >> %LOGFILE%
 start "" "{current_exe}"
 
-timeout /t 8 /nobreak >nul
-tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
-if errorlevel 1 (
-    echo [%TIME%] WARNING: New exe not running after attempt %LAUNCH_RETRY% >> %LOGFILE%
-    if %LAUNCH_RETRY% LSS 3 (
-        echo [%TIME%] Retrying in 5s... >> %LOGFILE%
-        timeout /t 5 /nobreak >nul
-        goto LAUNCH_LOOP
-    )
-    echo [%TIME%] FAILED: New exe did not start after 3 attempts >> %LOGFILE%
-) else (
-    echo [%TIME%] New exe is running OK >> %LOGFILE%
-)
-
 REM Clean up .old file (best effort)
-timeout /t 3 /nobreak >nul
+timeout /t 5 /nobreak >nul
 del /f /q "{old_path.name}" >nul 2>&1
 
 echo [%TIME%] Update complete. >> %LOGFILE%
-
-REM Delete this script
 del /f /q "%~f0" >nul 2>&1
 exit /b 0
 
 :CLEANUP_FAIL
 echo [%TIME%] Update FAILED. >> %LOGFILE%
-echo Update failed. Cleaning up...
 if exist "{temp_path.name}" del /f /q "{temp_path.name}" 2>&1 >> %LOGFILE%
-echo Starting original version...
 if exist "{current_exe.name}" start "" "{current_exe}"
 del /f /q "%~f0" >nul 2>&1
 exit /b 1
@@ -265,8 +224,7 @@ exit /b 1
         with open(batch_path, "w") as f:
             f.write(batch_content)
 
-        # Launch updater script (caller is responsible for exiting the process)
-        logger.info("Launching updater script, caller must exit the process...")
+        logger.info("Launching updater script (MEI path: {})", mei_path)
         subprocess.Popen(
             ["cmd", "/c", str(batch_path)],
             cwd=str(exe_dir),
@@ -276,7 +234,6 @@ exit /b 1
 
     except Exception as exc:
         logger.warning("Update download failed: {}", exc)
-        # Clean up temp file if it exists
         try:
             temp_path = Path(sys.executable).resolve().parent / f"{Path(sys.executable).stem}_update.exe"
             if temp_path.exists():
@@ -287,11 +244,7 @@ exit /b 1
 
 
 def perform_update_if_available() -> bool:
-    """Convenience: check + download + replace.
-
-    Returns:
-        True if update initiated (app will exit), False otherwise.
-    """
+    """Convenience: check + download + replace."""
     update_info = check_for_update()
     if update_info is None:
         return False
