@@ -48,16 +48,30 @@ class BossNameDetector:
     ) -> None:
         self._match_threshold = match_threshold
         self._boss_names: list[str] = []
+        self._boss_entries: list[dict] = []  # Full entries with name + location
         self._ocr_available = False
         self.last_raw_ocr: str | None = None
         self.last_match_score: int | None = None
         self.last_was_fallback: bool = False
 
-        # Load boss names
+        # Load boss names (supports both legacy list[str] and new list[dict] format)
         try:
             with open(boss_names_path, "r", encoding="utf-8") as f:
-                self._boss_names = json.load(f)
-            logger.info("Loaded {} canonical boss names", len(self._boss_names))
+                raw = json.load(f)
+            if raw and isinstance(raw[0], dict):
+                self._boss_entries = raw
+                # Deduplicate names for fuzzy matching
+                seen: set[str] = set()
+                for entry in raw:
+                    name = entry["name"]
+                    if name not in seen:
+                        self._boss_names.append(name)
+                        seen.add(name)
+            else:
+                # Legacy format: plain list of strings
+                self._boss_names = raw
+            logger.info("Loaded {} canonical boss names ({} entries with locations)",
+                        len(self._boss_names), len(self._boss_entries))
         except Exception as exc:
             logger.error("Failed to load boss names from {}: {}", boss_names_path, exc)
 
