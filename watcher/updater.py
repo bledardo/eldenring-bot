@@ -203,11 +203,54 @@ echo [%TIME%] Rename update file OK >> %LOGFILE%
 echo Unblocking exe...
 powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
 
-echo [%TIME%] Starting new version... >> %LOGFILE%
+REM === DIAGNOSTIC: log everything about the new exe before launch ===
+echo [%TIME%] === PRE-LAUNCH DIAGNOSTIC === >> %LOGFILE%
+echo [%TIME%] New exe path: {current_exe} >> %LOGFILE%
+echo [%TIME%] New exe size: >> %LOGFILE%
+for %%A in ("{current_exe.name}") do echo   %%~zA bytes >> %LOGFILE%
+echo [%TIME%] New exe exists: >> %LOGFILE%
+if exist "{current_exe.name}" (echo   YES >> %LOGFILE%) else (echo   NO >> %LOGFILE%)
+
+echo [%TIME%] Checking Zone.Identifier ADS: >> %LOGFILE%
+more < "{current_exe.name}:Zone.Identifier" >> %LOGFILE% 2>&1
+if errorlevel 1 echo   No Zone.Identifier (good) >> %LOGFILE%
+
+echo [%TIME%] All _MEI dirs in TEMP before launch: >> %LOGFILE%
+dir /b /ad "%TEMP%\\_MEI*" >> %LOGFILE% 2>&1
+if errorlevel 1 echo   None found (good) >> %LOGFILE%
+
+echo [%TIME%] Files in exe directory: >> %LOGFILE%
+dir /b "{exe_dir}" >> %LOGFILE% 2>&1
+
+echo [%TIME%] Windows Defender status: >> %LOGFILE%
+powershell -Command "Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled,IoavProtectionEnabled | Format-List" >> %LOGFILE% 2>&1
+
+echo [%TIME%] === LAUNCHING NEW EXE === >> %LOGFILE%
 explorer.exe "{current_exe}"
 
+REM Wait and check what happened
+timeout /t 10 /nobreak >nul
+
+echo [%TIME%] === POST-LAUNCH DIAGNOSTIC === >> %LOGFILE%
+echo [%TIME%] Process running check: >> %LOGFILE%
+tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul >> %LOGFILE%
+
+echo [%TIME%] All _MEI dirs in TEMP after launch: >> %LOGFILE%
+dir /b /ad "%TEMP%\\_MEI*" >> %LOGFILE% 2>&1
+if errorlevel 1 echo   None found >> %LOGFILE%
+
+REM For each _MEI dir, check if python311.dll and vcruntime140.dll exist
+for /d %%D in ("%TEMP%\\_MEI*") do (
+    echo [%TIME%] Checking %%D: >> %LOGFILE%
+    if exist "%%D\\python311.dll" (echo   python311.dll: YES >> %LOGFILE%) else (echo   python311.dll: NO >> %LOGFILE%)
+    if exist "%%D\\vcruntime140.dll" (echo   vcruntime140.dll: YES >> %LOGFILE%) else (echo   vcruntime140.dll: NO >> %LOGFILE%)
+    if exist "%%D\\vcruntime140_1.dll" (echo   vcruntime140_1.dll: YES >> %LOGFILE%) else (echo   vcruntime140_1.dll: NO >> %LOGFILE%)
+    echo   All DLLs in dir: >> %LOGFILE%
+    dir /b "%%D\\*.dll" >> %LOGFILE% 2>&1
+)
+
 REM Clean up .old file (best effort)
-timeout /t 5 /nobreak >nul
+timeout /t 3 /nobreak >nul
 del /f /q "{old_path.name}" >nul 2>&1
 
 echo [%TIME%] Update complete. >> %LOGFILE%
