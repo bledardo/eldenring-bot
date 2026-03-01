@@ -5,6 +5,9 @@ Bundles all dependencies including Tesseract OCR and OpenCV.
 Expected exe size: ~50-100MB (much smaller without PyTorch).
 """
 
+import glob
+import os
+import sysconfig
 import sys
 from pathlib import Path
 
@@ -19,13 +22,22 @@ numpy_hiddenimports = collect_submodules("numpy")
 numpy_binaries = collect_dynamic_libs("numpy")
 numpy_datas = collect_data_files("numpy")
 
+# Explicitly bundle Visual C++ Runtime DLLs (python311.dll depends on these)
+python_dir = os.path.dirname(sys.executable)
+vc_binaries = []
+for pattern in ["vcruntime*.dll", "msvcp*.dll", "concrt*.dll", "vcomp*.dll"]:
+    for dll in glob.glob(os.path.join(python_dir, pattern)):
+        vc_binaries.append((dll, "."))
+if vc_binaries:
+    print(f"Bundling VC runtime DLLs: {[os.path.basename(b[0]) for b in vc_binaries]}")
+
 # Collect Tesseract data and binaries
 tesseract_datas, tesseract_binaries = get_tesseract_datas()
 
 a = Analysis(
     ["watcher/main.py"],
     pathex=["watcher"],
-    binaries=tesseract_binaries + numpy_binaries,
+    binaries=tesseract_binaries + numpy_binaries + vc_binaries,
     datas=[
         ("watcher/assets/boss_names.json", "watcher/assets"),
         ("watcher/assets/templates", "watcher/assets/templates"),
