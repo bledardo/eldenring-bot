@@ -1,16 +1,15 @@
 """Auto-update checker and downloader via GitHub Releases.
 
-Uses zip-based updates for --onedir PyInstaller builds.
+Checks for new releases on startup and offers self-update via batch script.
 Must never crash the app — all exceptions are caught.
 """
 
 from __future__ import annotations
 
-import io
 import os
 import subprocess
 import sys
-import zipfile
+import tempfile
 from pathlib import Path
 
 import requests
@@ -18,6 +17,7 @@ from loguru import logger
 
 from watcher import __version__
 
+# Placeholder — user sets this to their actual repo
 GITHUB_REPO = "bledardo/eldenring-bot"
 
 CURRENT_VERSION = __version__
@@ -32,15 +32,11 @@ def _parse_version(version_str: str) -> tuple[int, ...]:
         return (0, 0, 0)
 
 
-def _get_app_dir() -> Path:
-    """Get the application directory (where EldenWatcher.exe lives)."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
-    return Path(__file__).resolve().parent.parent
-
-
 def check_for_update(timeout: float = 5.0) -> dict | None:
     """Check GitHub Releases for a newer version.
+
+    Args:
+        timeout: HTTP request timeout in seconds.
 
     Returns:
         Dict with version, download_url, release_notes if update available, None otherwise.
@@ -62,25 +58,17 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
             logger.debug("No update available (current={}, latest={})", CURRENT_VERSION, latest_tag)
             return None
 
-        # Find .zip asset (onedir distribution)
+        # Find .exe asset
         download_url = None
         expected_size = None
         for asset in data.get("assets", []):
-            if asset["name"].endswith(".zip"):
+            if asset["name"].endswith(".exe"):
                 download_url = asset["browser_download_url"]
                 expected_size = asset.get("size")
                 break
 
-        # Fallback: try .exe for backward compat with old releases
         if download_url is None:
-            for asset in data.get("assets", []):
-                if asset["name"].endswith(".exe"):
-                    download_url = asset["browser_download_url"]
-                    expected_size = asset.get("size")
-                    break
-
-        if download_url is None:
-            logger.debug("Update available ({}) but no .zip or .exe asset found", latest_tag)
+            logger.debug("Update available ({}) but no .exe asset found", latest_tag)
             return None
 
         logger.info("Update available: {} -> {}", CURRENT_VERSION, latest_tag)
@@ -97,15 +85,18 @@ def check_for_update(timeout: float = 5.0) -> dict | None:
 
 
 def download_and_replace(download_url: str, expected_size: int | None = None) -> bool:
-    """Download update zip and create self-update batch script.
+    """Download new exe and create self-update batch script.
 
-    For --onedir builds, the update is a zip containing the EldenWatcher folder.
     The batch script:
-    1. Waits for current process to exit
-    2. Renames current folder to .old
-    3. Renames extracted folder to current name
-    4. Launches new exe
-    5. Cleans up
+    1. Waits for current process to fully exit (retry loop)
+    2. Deletes any leftover .old from a previous update
+    3. Renames current exe to .old
+    4. Renames downloaded exe to current name
+    5. Launches new exe
+    6. Cleans up .old and deletes itself
+
+    Args:
+        download_url: URL of the new .exe to download.
 
     Returns:
         True if update initiated (app will exit), False on failure.
@@ -116,77 +107,37 @@ def download_and_replace(download_url: str, expected_size: int | None = None) ->
             logger.warning("Not running as .exe — skipping update")
             return False
 
-        app_dir = current_exe.parent
-        app_name = app_dir.name  # "EldenWatcher"
-        parent_dir = app_dir.parent  # e.g. Desktop
-        old_dir = parent_dir / f"{app_name}.old"
-        update_dir = parent_dir / f"{app_name}_update"
+        exe_dir = current_exe.parent
+        old_path = exe_dir / f"{current_exe.stem}.old"
+        temp_path = exe_dir / f"{current_exe.stem}_update.exe"
 
         logger.info("Downloading update from {}", download_url)
-        response = requests.get(download_url, stream=True, timeout=120)
+        response = requests.get(download_url, stream=True, timeout=60)
         response.raise_for_status()
 
-        # Download to memory
-        data = io.BytesIO()
-        for chunk in response.iter_content(chunk_size=8192):
-            data.write(chunk)
-        data.seek(0)
+        with open(temp_path, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
 
-        actual_size = data.getbuffer().nbytes
+        # Verify download integrity (size check)
+        actual_size = temp_path.stat().st_size
         if expected_size is not None and actual_size != expected_size:
-            logger.error("Download corrupted: expected {} bytes, got {} bytes", expected_size, actual_size)
+            logger.error(
+                "Download corrupted: expected {} bytes, got {} bytes",
+                expected_size, actual_size,
+            )
+            temp_path.unlink(missing_ok=True)
             return False
-        logger.info("Update downloaded ({} bytes, verified)", actual_size)
-
-        # Extract zip
-        if not zipfile.is_zipfile(data):
-            logger.error("Downloaded file is not a valid zip")
-            return False
-
-        data.seek(0)
-        # Clean up any leftover update dir
-        if update_dir.exists():
-            import shutil
-            shutil.rmtree(update_dir, ignore_errors=True)
-
-        with zipfile.ZipFile(data) as zf:
-            zf.extractall(parent_dir)
-            # The zip should contain an "EldenWatcher/" folder
-            # If extracted as "EldenWatcher/", rename to update dir
-            extracted = parent_dir / app_name
-            if extracted.exists() and extracted != app_dir:
-                # Extracted on top of current — move to update dir
-                extracted.rename(update_dir)
-            else:
-                # Might have extracted with a different name, find it
-                names = {n.split("/")[0] for n in zf.namelist() if "/" in n}
-                for name in names:
-                    candidate = parent_dir / name
-                    if candidate.exists() and candidate != app_dir:
-                        candidate.rename(update_dir)
-                        break
-
-        if not update_dir.exists():
-            logger.error("Failed to extract update — folder not found")
-            return False
-
-        # Verify the new exe exists
-        new_exe = update_dir / current_exe.name
-        if not new_exe.exists():
-            logger.error("Updated folder missing {}", current_exe.name)
-            import shutil
-            shutil.rmtree(update_dir, ignore_errors=True)
-            return False
-
-        logger.info("Update extracted to {}", update_dir)
+        logger.info("Update downloaded to {} ({} bytes, verified)", temp_path, actual_size)
 
         current_pid = os.getpid()
-        batch_path = parent_dir / "updater.bat"
-        update_log = parent_dir / "updater_debug.log"
-        final_exe = app_dir / current_exe.name
 
+        # Create batch script for self-update
+        # Uses full paths, retry loops, and proper error handling.
+        batch_path = exe_dir / "updater.bat"
+        update_log = exe_dir / "updater_debug.log"
         batch_content = f"""@echo off
-cd /d "{parent_dir}"
+cd /d "{exe_dir}"
 
 set LOGFILE="{update_log.name}"
 echo === Update started at %DATE% %TIME% === >> %LOGFILE%
@@ -199,92 +150,137 @@ if not errorlevel 1 (
     timeout /t 1 /nobreak >nul
     goto WAIT_EXIT
 )
+echo Watcher exited.
 echo [%TIME%] Watcher exited. >> %LOGFILE%
 
-REM Wait for file handles to be released
-timeout /t 3 /nobreak >nul
+REM Wait extra time for Windows to release all file handles (DLLs, _MEI dir)
+echo Waiting 5s for file handles to be released...
+echo [%TIME%] Waiting 5s for file handle release... >> %LOGFILE%
+timeout /t 5 /nobreak >nul
 
-REM Kill any lingering processes
+REM Kill any lingering EldenWatcher processes (zombie child processes)
 tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
 if not errorlevel 1 (
-    echo [%TIME%] Killing lingering process... >> %LOGFILE%
+    echo [%TIME%] WARNING: Found lingering process, killing it... >> %LOGFILE%
     taskkill /F /IM "{current_exe.name}" >nul 2>&1
-    timeout /t 2 /nobreak >nul
+    timeout /t 3 /nobreak >nul
 )
 
-REM Remove old backup if exists
-if exist "{old_dir.name}" (
-    echo [%TIME%] Removing old backup dir... >> %LOGFILE%
-    rmdir /s /q "{old_dir.name}" 2>&1 >> %LOGFILE%
-    if exist "{old_dir.name}" (
-        timeout /t 3 /nobreak >nul
-        rmdir /s /q "{old_dir.name}" 2>&1 >> %LOGFILE%
+REM List files before update
+echo [%TIME%] Files in directory before update: >> %LOGFILE%
+dir /b "{exe_dir}" >> %LOGFILE% 2>&1
+
+REM Delete leftover .old from previous update
+if exist "{old_path.name}" (
+    echo [%TIME%] Deleting leftover .old file... >> %LOGFILE%
+    del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
+    if exist "{old_path.name}" (
+        echo WARNING: Could not delete old file, retrying...
+        echo [%TIME%] WARNING: Could not delete .old, retrying... >> %LOGFILE%
+        timeout /t 2 /nobreak >nul
+        del /f /q "{old_path.name}" 2>&1 >> %LOGFILE%
     )
 )
 
-REM Rename current app dir to .old
+REM Rename current exe to .old
 set RETRY=0
 :RENAME_OLD
-echo [%TIME%] Renaming {app_name} to {old_dir.name}... >> %LOGFILE%
-ren "{app_name}" "{old_dir.name}" 2>&1 >> %LOGFILE%
+echo [%TIME%] Renaming {current_exe.name} to {old_path.name}... >> %LOGFILE%
+ren "{current_exe.name}" "{old_path.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
     set /a RETRY+=1
     if %RETRY% GEQ 10 (
+        echo ERROR: Failed to rename current exe after 10 retries. Aborting.
         echo [%TIME%] ERROR: Failed to rename after 10 retries >> %LOGFILE%
         goto CLEANUP_FAIL
     )
-    echo [%TIME%] Retry %RETRY%/10 - dir locked >> %LOGFILE%
+    echo Retry %RETRY%/10 — file may be locked...
+    echo [%TIME%] Retry %RETRY%/10 - file locked >> %LOGFILE%
     timeout /t 2 /nobreak >nul
     goto RENAME_OLD
 )
 echo [%TIME%] Rename to .old OK >> %LOGFILE%
 
-REM Rename update dir to app name
-echo [%TIME%] Renaming {update_dir.name} to {app_name}... >> %LOGFILE%
-ren "{update_dir.name}" "{app_name}" 2>&1 >> %LOGFILE%
+REM Rename downloaded exe to current name
+echo [%TIME%] Renaming {temp_path.name} to {current_exe.name}... >> %LOGFILE%
+ren "{temp_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
 if errorlevel 1 (
-    echo [%TIME%] ERROR: Failed to rename update dir, rolling back >> %LOGFILE%
-    ren "{old_dir.name}" "{app_name}" 2>&1 >> %LOGFILE%
+    echo ERROR: Failed to rename update file. Rolling back...
+    echo [%TIME%] ERROR: Failed to rename update file, rolling back >> %LOGFILE%
+    ren "{old_path.name}" "{current_exe.name}" 2>&1 >> %LOGFILE%
     goto CLEANUP_FAIL
 )
-echo [%TIME%] Rename update dir OK >> %LOGFILE%
+echo [%TIME%] Rename update file OK >> %LOGFILE%
+
+echo Unblocking exe (remove Windows download security flag)...
+powershell -Command "Unblock-File -Path '{current_exe}'" >nul 2>&1
+
+REM List files after rename
+echo [%TIME%] Files in directory after rename: >> %LOGFILE%
+dir /b "{exe_dir}" >> %LOGFILE% 2>&1
 
 echo [%TIME%] Starting new version... >> %LOGFILE%
-start "" "{final_exe}"
+echo Update successful, starting new version...
 
-REM Clean up old dir (best effort)
-timeout /t 5 /nobreak >nul
-rmdir /s /q "{old_dir.name}" >nul 2>&1
+REM Try launching with retries (Windows Defender may block DLL extraction)
+set LAUNCH_RETRY=0
+:LAUNCH_LOOP
+set /a LAUNCH_RETRY+=1
+echo [%TIME%] Launch attempt %LAUNCH_RETRY%/3... >> %LOGFILE%
+start "" "{current_exe}"
+
+timeout /t 8 /nobreak >nul
+tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /I "{current_exe.name}" >nul
+if errorlevel 1 (
+    echo [%TIME%] WARNING: New exe not running after attempt %LAUNCH_RETRY% >> %LOGFILE%
+    if %LAUNCH_RETRY% LSS 3 (
+        echo [%TIME%] Retrying in 5s... >> %LOGFILE%
+        timeout /t 5 /nobreak >nul
+        goto LAUNCH_LOOP
+    )
+    echo [%TIME%] FAILED: New exe did not start after 3 attempts >> %LOGFILE%
+) else (
+    echo [%TIME%] New exe is running OK >> %LOGFILE%
+)
+
+REM Clean up .old file (best effort)
+timeout /t 3 /nobreak >nul
+del /f /q "{old_path.name}" >nul 2>&1
 
 echo [%TIME%] Update complete. >> %LOGFILE%
+
+REM Delete this script
 del /f /q "%~f0" >nul 2>&1
 exit /b 0
 
 :CLEANUP_FAIL
 echo [%TIME%] Update FAILED. >> %LOGFILE%
-if exist "{update_dir.name}" rmdir /s /q "{update_dir.name}" 2>&1 >> %LOGFILE%
-echo [%TIME%] Starting original version... >> %LOGFILE%
-if exist "{app_name}\\{current_exe.name}" start "" "{app_dir}\\{current_exe.name}"
+echo Update failed. Cleaning up...
+if exist "{temp_path.name}" del /f /q "{temp_path.name}" 2>&1 >> %LOGFILE%
+echo Starting original version...
+if exist "{current_exe.name}" start "" "{current_exe}"
 del /f /q "%~f0" >nul 2>&1
 exit /b 1
 """
         with open(batch_path, "w") as f:
             f.write(batch_content)
 
+        # Launch updater script (caller is responsible for exiting the process)
         logger.info("Launching updater script, caller must exit the process...")
         subprocess.Popen(
             ["cmd", "/c", str(batch_path)],
-            cwd=str(parent_dir),
+            cwd=str(exe_dir),
             creationflags=subprocess.CREATE_NEW_CONSOLE if hasattr(subprocess, "CREATE_NEW_CONSOLE") else 0,
         )
         return True
 
     except Exception as exc:
         logger.warning("Update download failed: {}", exc)
+        # Clean up temp file if it exists
         try:
-            if update_dir.exists():
-                import shutil
-                shutil.rmtree(update_dir, ignore_errors=True)
+            temp_path = Path(sys.executable).resolve().parent / f"{Path(sys.executable).stem}_update.exe"
+            if temp_path.exists():
+                temp_path.unlink()
         except Exception:
             pass
         return False

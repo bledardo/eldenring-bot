@@ -4,11 +4,10 @@ Usage:
     python build.py
 
 Output:
-    dist/EldenWatcher/EldenWatcher.exe  (onedir)
-    dist/EldenWatcher.zip               (for distribution/auto-update)
+    dist/EldenWatcher.exe
 
 Test:
-    Extract the zip to a machine without Python and run EldenWatcher.exe
+    Copy exe to a machine without Python and run it.
 """
 
 from __future__ import annotations
@@ -17,7 +16,6 @@ import os
 import shutil
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 
 
@@ -69,28 +67,15 @@ def build() -> None:
         print("BUILD FAILED")
         sys.exit(1)
 
-    # Check output (onedir mode: dist/EldenWatcher/ folder)
-    dist_dir = Path("dist/EldenWatcher")
-    exe_path = dist_dir / "EldenWatcher.exe"
+    # Check output
+    exe_path = Path("dist/EldenWatcher.exe")
     if exe_path.exists():
-        # Create zip for distribution
-        zip_path = Path("dist/EldenWatcher.zip")
-        print(f"Creating {zip_path}...")
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for file in dist_dir.rglob("*"):
-                if file.is_file():
-                    arcname = file.relative_to(dist_dir.parent)  # EldenWatcher/...
-                    zf.write(file, arcname)
-
-        zip_mb = zip_path.stat().st_size / (1024 * 1024)
-        dir_size = sum(f.stat().st_size for f in dist_dir.rglob("*") if f.is_file())
-        dir_mb = dir_size / (1024 * 1024)
-        print(f"\nBUILD SUCCESS: {dist_dir}/")
-        print(f"Folder size: {dir_mb:.0f} MB")
-        print(f"Zip size:    {zip_mb:.0f} MB ({zip_path})")
-        print(f"\nUpload {zip_path} to GitHub Releases")
+        size_mb = exe_path.stat().st_size / (1024 * 1024)
+        print(f"\nBUILD SUCCESS: {exe_path}")
+        print(f"Size: {size_mb:.0f} MB")
+        print("\nTest: Copy exe to a machine without Python and run it")
     else:
-        print("WARNING: Expected output not found at dist/EldenWatcher/EldenWatcher.exe")
+        print("WARNING: Expected output not found at dist/EldenWatcher.exe")
 
 
 if __name__ == "__main__":
