@@ -412,13 +412,36 @@ class Watcher:
                             # Send the encounter event that was skipped for "Unknown Boss"
                             self._on_encounter(retry_name)
 
+                # During FIGHT_RESOLVING, require higher confidence for bar
+                # reappearance.  The structural fallback often picks up red
+                # scene elements at 0.3-0.6 confidence — these are NOT the
+                # health bar and cause constant resolving→active bouncing.
+                fsm_bar_detected = bar_detected
+                if self._fsm.state == FightState.FIGHT_RESOLVING and bar_detected:
+                    if self._health_bar.last_confidence < 0.6:
+                        fsm_bar_detected = False
+                        logger.trace(
+                            "Suppressed bar reappearance (confidence {:.3f} < 0.6)",
+                            self._health_bar.last_confidence,
+                        )
+
+                prev_fsm_state = self._fsm.state
+
                 # Feed FSM
                 self._fsm.process_frame(
-                    boss_bar_detected=bar_detected,
+                    boss_bar_detected=fsm_bar_detected,
                     boss_name=boss_name,
                     death_detected=death_detected,
                     kill_detected=kill_detected,
                 )
+
+                # Reset health bar confirmer when entering FIGHT_RESOLVING
+                # so that bar reappearance needs 3 fresh consecutive frames.
+                if (
+                    self._fsm.state == FightState.FIGHT_RESOLVING
+                    and prev_fsm_state != FightState.FIGHT_RESOLVING
+                ):
+                    self._health_bar._confirmer.reset()
 
                 # Debug screenshots on detection triggers
                 if self._config.debug_screenshots:
