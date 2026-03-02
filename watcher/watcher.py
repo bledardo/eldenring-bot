@@ -232,22 +232,30 @@ class Watcher:
                     not bar_detected
                     and self._health_bar.last_was_doubtful
                     and self._fsm.state in (FightState.IDLE, FightState.ENCOUNTER_PENDING)
-                    and time.time() - self._last_ocr_confirm_time >= 1.0
                 ):
-                    self._last_ocr_confirm_time = time.time()
-                    if boss_bar_frame is not None:
-                        bar_h = boss_bar_frame.shape[0]
-                        name_bottom = int(bar_h * 0.45)
-                        ocr_frame = boss_bar_frame[:name_bottom, :]
-                        ocr_name = self._boss_name.detect(ocr_frame)
-                        if ocr_name:
-                            logger.info(
-                                "Doubtful bar confirmed by OCR: {} (confidence={:.3f})",
-                                ocr_name, self._health_bar.last_confidence,
-                            )
-                            bar_detected = True
-                            self._current_boss_name = ocr_name
-                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                    if time.time() - self._last_ocr_confirm_time >= 1.0:
+                        self._last_ocr_confirm_time = time.time()
+                        if boss_bar_frame is not None:
+                            bar_h = boss_bar_frame.shape[0]
+                            name_bottom = int(bar_h * 0.45)
+                            ocr_frame = boss_bar_frame[:name_bottom, :]
+                            ocr_name = self._boss_name.detect(ocr_frame)
+                            if ocr_name:
+                                logger.info(
+                                    "Doubtful bar confirmed by OCR: {} (confidence={:.3f})",
+                                    ocr_name, self._health_bar.last_confidence,
+                                )
+                                bar_detected = True
+                                self._current_boss_name = ocr_name
+                                self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                    elif self._fsm.state == FightState.ENCOUNTER_PENDING:
+                        # Already OCR-confirmed recently, keep treating doubtful
+                        # bar as detected to accumulate confirmation frames.
+                        bar_detected = True
+                        logger.debug(
+                            "Doubtful bar sustained during pending (confidence={:.3f})",
+                            self._health_bar.last_confidence,
+                        )
 
                 # Run death detector in all states (boss fights + global deaths)
                 death_detected = self._you_died.detect(you_died_frame, in_combat=False)
@@ -302,11 +310,15 @@ class Watcher:
                 #     self._coop_detected = self._coop.detect(coop_frame)
 
                 # Run OCR once per encounter (when health bar first confirmed)
+                # Also re-run OCR when bar reappears during FIGHT_RESOLVING
+                # to detect if a different boss appeared (new encounter).
                 boss_name = self._current_boss_name
                 if (
                     bar_detected
-                    and self._fsm.state == FightState.ENCOUNTER_PENDING
-                    and self._current_boss_name is None
+                    and (
+                        (self._fsm.state == FightState.ENCOUNTER_PENDING and self._current_boss_name is None)
+                        or self._fsm.state == FightState.FIGHT_RESOLVING
+                    )
                 ):
                     # Check for double boss fight (two health bars stacked)
                     double_bar_frame = self._capture.crop_region(full_frame, DOUBLE_BOSS_BAR_REGION)
@@ -351,12 +363,20 @@ class Watcher:
                             detected_name = self._boss_name.detect(boss_bar_frame)
 
                     if detected_name:
-                        self._current_boss_name = detected_name
-                        if bar_count < 2:
-                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
                         boss_name = detected_name
-                        logger.info("Boss identified: {}{}", detected_name,
-                                    " (OCR fallback)" if self._current_boss_is_fallback else "")
+                        if self._fsm.state == FightState.FIGHT_RESOLVING:
+                            # Don't overwrite _current_boss_name yet — let FSM
+                            # compare old vs new and decide (abandon + new encounter
+                            # or multi-phase).  FSM's on_encounter callback will
+                            # trigger _reset_fight_state → _current_boss_name = None
+                            # followed by a fresh OCR on the new encounter.
+                            logger.info("OCR during resolving: {}", detected_name)
+                        else:
+                            self._current_boss_name = detected_name
+                            if bar_count < 2:
+                                self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                            logger.info("Boss identified: {}{}", detected_name,
+                                        " (OCR fallback)" if self._current_boss_is_fallback else "")
                         # Save encounter screenshot
                         if self._config.debug_screenshots:
                             self._save_debug_screenshot(bar_detected, False)

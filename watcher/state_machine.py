@@ -14,6 +14,26 @@ from enum import Enum
 from loguru import logger
 from transitions import Machine
 
+# Multi-phase bosses that change name between phases.
+# Maps phase1 name → phase2 name (bidirectional check in _is_same_fight).
+PHASE_TRANSITIONS: dict[str, str] = {
+    "Radagon de l'Ordre d'or": "Bête d'Elden",
+    "Clerc Bestial": "Maliketh la Lame d'ébène",
+    "Godfrey, premier Seigneur d'Elden": "Hoarah Loux, le Guerrier",
+    "Serpent dévoreur de dieux": "Rykard, seigneur du blasphème",
+    "Messmer l'Empaleur": "Messmer, serpent maléfique",
+}
+
+# Build reverse mapping for bidirectional lookup
+_SAME_FIGHT_PAIRS: set[frozenset[str]] = {
+    frozenset((k, v)) for k, v in PHASE_TRANSITIONS.items()
+}
+
+
+def _is_same_fight(name_a: str, name_b: str) -> bool:
+    """Return True if name_a and name_b are phases of the same boss fight."""
+    return frozenset((name_a, name_b)) in _SAME_FIGHT_PAIRS
+
 
 class FightState(str, Enum):
     """Boss fight lifecycle states."""
@@ -103,7 +123,7 @@ class BossFightFSM:
             self._handle_active_fight(boss_bar_detected, death_detected, kill_detected, now)
 
         elif self.state == FightState.FIGHT_RESOLVING:
-            self._handle_fight_resolving(boss_bar_detected, death_detected, kill_detected, now)
+            self._handle_fight_resolving(boss_bar_detected, boss_name, death_detected, kill_detected, now)
 
         elif self.state == FightState.COOLDOWN:
             self._handle_cooldown(now)
@@ -203,14 +223,16 @@ class BossFightFSM:
         return True
 
     def _handle_fight_resolving(
-        self, boss_bar_detected: bool, death_detected: bool, kill_detected: bool, now: float
+        self, boss_bar_detected: bool, boss_name: str | None,
+        death_detected: bool, kill_detected: bool, now: float,
     ) -> None:
         """FIGHT_RESOLVING: bar disappeared, waiting to determine outcome.
 
         Stays in this state until a positive signal or timeout:
         - Kill text detected → kill
         - Death text detected → death
-        - Boss bar reappears → back to active fight (multi-phase)
+        - Boss bar reappears with same name → back to active fight (multi-phase)
+        - Boss bar reappears with different name → abandon old, start new encounter
         - Timeout (resolve_timeout) → auto-abandon (prevents stuck state)
         Abandon is also triggered externally (session end or new encounter).
         """
@@ -234,8 +256,39 @@ class BossFightFSM:
             return
 
         if boss_bar_detected:
-            # Only accept bar reappearance if we have a valid boss name
-            # (prevents false positive structural detection from looping)
+            # Check if boss name changed — means a NEW encounter, not multi-phase
+            if (
+                boss_name
+                and self._is_valid_boss_name(boss_name)
+                and self._is_valid_boss_name(self._current_boss)
+                and boss_name != self._current_boss
+            ):
+                # Known phase transition (e.g. Radagon → Bête d'Elden)
+                if _is_same_fight(self._current_boss, boss_name):
+                    logger.info(
+                        "Phase transition: {} → {} (same fight)",
+                        self._current_boss, boss_name,
+                    )
+                    self._current_boss = boss_name
+                    self._resolution_start = None
+                    self._transition_to(FightState.ACTIVE_FIGHT)
+                    return
+
+                # Truly different boss — abandon old, start new
+                logger.info(
+                    "Different boss detected during resolving: {} → {} — abandoning old fight",
+                    self._current_boss, boss_name,
+                )
+                self._on_abandon(self._current_boss or "Unknown Boss")
+                # Start new encounter immediately
+                self._confirm_count = 1
+                self._current_boss = boss_name
+                self._encounter_notified = False
+                self._resolution_start = None
+                self._transition_to(FightState.ENCOUNTER_PENDING)
+                return
+
+            # Same boss or no name yet — multi-phase transition
             if self._is_valid_boss_name(self._current_boss):
                 logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
                 self._resolution_start = None

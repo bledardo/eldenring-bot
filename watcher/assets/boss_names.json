@@ -921,16 +921,16 @@
     ]
   },
   {
+    "name": "Fleur de Miranda",
+    "locations": [
+      "Péninsule larmoyante: Grotte de la Pierre Tombale"
+    ]
+  },
+  {
     "name": "Miranda la Fleur galeuse",
     "locations": [
       "Plateau Altus: Grotte du Parfumeur",
       "Péninsule larmoyante: Cavernes du Val-aux-Tombes"
-    ]
-  },
-  {
-    "name": "Miranda la Fleur Putride",
-    "locations": [
-      "Grotte de la Pierre Tombale, Péninsule des Pleurs"
     ]
   },
   {
