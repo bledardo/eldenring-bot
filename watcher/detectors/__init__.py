@@ -7,14 +7,21 @@ class ConsecutiveConfirmer:
     """Requires N consecutive positive detections before confirming.
 
     Prevents single-frame false positives by requiring a streak of detections.
+    Tolerates brief flicker gaps via ``grace_frames``: a single missed frame
+    only decrements the counter instead of resetting it to zero.
 
     Args:
         required_count: Number of consecutive positive frames needed.
+        grace_frames: Number of consecutive misses tolerated before full reset.
+            With grace_frames=1, a single miss decrements the counter by 1
+            but a second consecutive miss resets to 0.
     """
 
-    def __init__(self, required_count: int = 3) -> None:
+    def __init__(self, required_count: int = 3, grace_frames: int = 0) -> None:
         self.required = required_count
+        self.grace_frames = grace_frames
         self.count = 0
+        self._miss_streak = 0
 
     def update(self, detected: bool) -> bool:
         """Update with a detection result.
@@ -27,13 +34,19 @@ class ConsecutiveConfirmer:
         """
         if detected:
             self.count += 1
+            self._miss_streak = 0
         else:
-            self.count = 0
+            self._miss_streak += 1
+            if self._miss_streak > self.grace_frames:
+                self.count = 0
+            else:
+                self.count = max(0, self.count - 1)
         return self.count >= self.required
 
     def reset(self) -> None:
         """Reset the consecutive counter."""
         self.count = 0
+        self._miss_streak = 0
 
 
 from watcher.detectors.health_bar import HealthBarDetector  # noqa: E402

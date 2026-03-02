@@ -140,6 +140,8 @@ class Watcher:
         self._resolving_debug_count: int = 0
         self._resolving_gold_saved: bool = False
         self._current_boss_is_fallback: bool = False
+        self._last_ocr_confirm_time: float = 0.0  # rate-limit OCR confirmation (1/sec)
+        self._last_ocr_retry_time: float = 0.0  # rate-limit OCR retry in ACTIVE_FIGHT (2s)
         self.last_frame_time: float = 0.0  # Updated every loop iteration (for watchdog)
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
@@ -222,6 +224,30 @@ class Watcher:
 
                 # Run health bar detector
                 bar_detected = self._health_bar.detect(boss_bar_frame)
+
+                # OCR confirmation for doubtful health bar detections.
+                # When the structural fallback gives a confidence between
+                # soft_threshold and threshold, run OCR to check for a boss name.
+                if (
+                    not bar_detected
+                    and self._health_bar.last_was_doubtful
+                    and self._fsm.state in (FightState.IDLE, FightState.ENCOUNTER_PENDING)
+                    and time.time() - self._last_ocr_confirm_time >= 1.0
+                ):
+                    self._last_ocr_confirm_time = time.time()
+                    if boss_bar_frame is not None:
+                        bar_h = boss_bar_frame.shape[0]
+                        name_bottom = int(bar_h * 0.45)
+                        ocr_frame = boss_bar_frame[:name_bottom, :]
+                        ocr_name = self._boss_name.detect(ocr_frame)
+                        if ocr_name:
+                            logger.info(
+                                "Doubtful bar confirmed by OCR: {} (confidence={:.3f})",
+                                ocr_name, self._health_bar.last_confidence,
+                            )
+                            bar_detected = True
+                            self._current_boss_name = ocr_name
+                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
 
                 # Run death detector in all states (boss fights + global deaths)
                 death_detected = self._you_died.detect(you_died_frame, in_combat=False)
@@ -361,6 +387,30 @@ class Watcher:
                                     cv2.imwrite(
                                         str(dbg_dir / f"{ts}_preproc_{label}.png"), img,
                                     )
+
+                # Retry OCR in ACTIVE_FIGHT when boss name is unknown.
+                # This catches cases where the first OCR failed (e.g. bar was
+                # partially loaded) but the boss name becomes readable later.
+                if (
+                    self._fsm.state == FightState.ACTIVE_FIGHT
+                    and self._current_boss_name is None
+                    and time.time() - self._last_ocr_retry_time >= 2.0
+                ):
+                    self._last_ocr_retry_time = time.time()
+                    if boss_bar_frame is not None:
+                        bar_h = boss_bar_frame.shape[0]
+                        name_bottom = int(bar_h * 0.45)
+                        retry_frame = boss_bar_frame[:name_bottom, :]
+                        retry_name = self._boss_name.detect(retry_frame)
+                        if retry_name:
+                            logger.info("OCR retry found boss name: {}", retry_name)
+                            self._current_boss_name = retry_name
+                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                            boss_name = retry_name
+                            # Update FSM's internal boss name
+                            self._fsm._current_boss = retry_name
+                            # Send the encounter event that was skipped for "Unknown Boss"
+                            self._on_encounter(retry_name)
 
                 # Feed FSM
                 self._fsm.process_frame(
@@ -529,6 +579,8 @@ class Watcher:
         self._resolving_debug_count = 0
         self._resolving_gold_saved = False
         self._resolve_log_count = 0
+        self._last_ocr_confirm_time = 0.0
+        self._last_ocr_retry_time = 0.0
 
     def _save_debug_screenshot(
         self, bar_detected: bool, death_detected: bool, frame: np.ndarray | None = None,

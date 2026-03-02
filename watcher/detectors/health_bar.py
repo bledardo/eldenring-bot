@@ -32,11 +32,14 @@ class HealthBarDetector:
         template_dir: Path,
         confirm_frames: int = 3,
         threshold: float = 0.75,
+        soft_threshold: float | None = None,
     ) -> None:
         self._threshold = threshold
-        self._confirmer = ConsecutiveConfirmer(confirm_frames)
+        self._soft_threshold = soft_threshold
+        self._confirmer = ConsecutiveConfirmer(confirm_frames, grace_frames=1)
         self._templates: list[np.ndarray] = []
         self.last_confidence: float = 0.0
+        self.last_was_doubtful: bool = False
 
         # Load templates if available
         if template_dir.exists():
@@ -50,10 +53,17 @@ class HealthBarDetector:
                     logger.warning("Failed to load template {}: {}", tpl_path.name, exc)
 
         mode = "template" if self._templates else "structural"
+        # Default soft_threshold: 0.15 for structural mode (where flicker is common)
+        if self._soft_threshold is None and not self._templates:
+            self._soft_threshold = 0.15
         logger.debug("HealthBarDetector initialized (mode={}, {} templates)", mode, len(self._templates))
 
     def detect(self, frame: np.ndarray | None) -> bool:
         """Detect if boss health bar is present.
+
+        Also sets ``last_was_doubtful`` when confidence falls between
+        ``soft_threshold`` and the main ``threshold`` — the caller can use
+        this to trigger OCR confirmation.
 
         Args:
             frame: BGR numpy array from screen capture.
@@ -61,6 +71,8 @@ class HealthBarDetector:
         Returns:
             True if health bar is confirmed present (N consecutive frames).
         """
+        self.last_was_doubtful = False
+
         if frame is None or frame.size == 0:
             self._confirmer.update(False)
             return False
@@ -69,6 +81,14 @@ class HealthBarDetector:
             detected = self._template_detect(frame)
         else:
             detected = self._structural_detect(frame)
+
+        # Doubtful zone: confidence between soft and hard threshold
+        if (
+            not detected
+            and self._soft_threshold is not None
+            and self.last_confidence >= self._soft_threshold
+        ):
+            self.last_was_doubtful = True
 
         return self._confirmer.update(detected)
 
