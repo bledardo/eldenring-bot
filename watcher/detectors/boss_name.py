@@ -212,6 +212,14 @@ class BossNameDetector:
                 return None
         return cleaned
 
+    # Common French item/menu keywords that are never boss names
+    _ITEM_KEYWORDS = frozenset({
+        "cendres", "bourgeon", "carte", "langue", "acheter",
+        "vendre", "fabriquer", "champignon", "larme", "rune",
+        "flacon", "parchemin", "clé", "graine", "talisman",
+        "coquillage", "écaille", "plume", "os", "racine",
+    })
+
     @staticmethod
     def _looks_like_boss_name(text: str) -> bool:
         """Extra validation for OCR fallback — stricter than _clean_ocr_text.
@@ -222,6 +230,7 @@ class BossNameDetector:
         - At least 6 total alpha chars
         - No digits (no boss name contains numbers)
         - Not ALL CAPS (French boss names use Title Case)
+        - No common item/menu keywords
         """
         # Reject text with digits — no boss name contains numbers
         if any(c.isdigit() for c in text):
@@ -237,6 +246,10 @@ class BossNameDetector:
         # Must have enough total alpha chars
         alpha_total = sum(1 for c in text if c.isalpha())
         if alpha_total < 6:
+            return False
+        # Reject common item/menu keywords
+        lower_tokens = {t.lower() for t in tokens}
+        if lower_tokens & BossNameDetector._ITEM_KEYWORDS:
             return False
         # Must have at least one capitalized word ≥4 chars
         has_proper_word = any(
@@ -387,7 +400,7 @@ class BossNameDetector:
         # Stricter than _clean_ocr_text — must look like a real boss name
         # AND have a minimum fuzzy proximity to at least one known boss
         # (rejects total garbage like "WOT ARES TRON 7l").
-        min_fallback_proximity = 55  # must vaguely resemble a real boss
+        min_fallback_proximity = 65  # must clearly resemble a real boss
         best_cleaned: str | None = None
         best_alpha = 0
         for raw in all_raw_texts:
