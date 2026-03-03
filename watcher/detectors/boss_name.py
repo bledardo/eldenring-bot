@@ -214,10 +214,10 @@ class BossNameDetector:
 
     # Common French item/menu keywords that are never boss names
     _ITEM_KEYWORDS = frozenset({
-        "cendres", "bourgeon", "carte", "langue", "acheter",
-        "vendre", "fabriquer", "champignon", "larme", "rune",
+        "cendres", "carte", "langue", "acheter",
+        "vendre", "fabriquer", "champignon", "rune",
         "flacon", "parchemin", "clé", "graine", "talisman",
-        "coquillage", "écaille", "plume", "os", "racine",
+        "coquillage", "écaille", "plume", "racine",
     })
 
     @staticmethod
