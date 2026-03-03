@@ -124,6 +124,8 @@ class HealthBarDetector:
 
         Isolates red pixels (HSV), then looks for a wide horizontal contour.
         The Elden Ring boss health bar is a long red/dark-red bar.
+        Falls back to edge-based detection when the scene is overwhelmingly
+        red (e.g. Radahn's desert arena).
         """
         red_mask, red_pixel_ratio = self._extract_red_mask(frame, sat_min=40, val_min=40)
 
@@ -131,10 +133,60 @@ class HealthBarDetector:
             # Retry with strict HSV to isolate bright red bar from dim red background
             red_mask, red_pixel_ratio = self._extract_red_mask(frame, sat_min=80, val_min=80)
             if red_pixel_ratio > 0.45:
-                self.last_confidence = 0.0
-                return False
+                # Scene is overwhelmingly red — color detection useless,
+                # fall back to edge-based detection (bar outline).
+                return self._edge_detect(frame)
 
         return self._find_bar_in_mask(red_mask, frame.shape, red_pixel_ratio)
+
+    def _edge_detect(self, frame: np.ndarray) -> bool:
+        """Edge-based fallback for red-heavy scenes (e.g. Radahn's arena).
+
+        Detects the bar by its horizontal border edges using Sobel gradient,
+        since color-based isolation fails when the background is also red.
+        """
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        abs_sobel = np.abs(sobel_y).astype(np.uint8)
+        _, edge_mask = cv2.threshold(abs_sobel, 30, 255, cv2.THRESH_BINARY)
+
+        # Keep only long horizontal edge segments
+        kernel_h = cv2.getStructuringElement(cv2.MORPH_RECT, (80, 1))
+        horiz = cv2.morphologyEx(edge_mask, cv2.MORPH_OPEN, kernel_h)
+
+        # Connect top + bottom bar borders vertically, then bridge gaps
+        kernel_v = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 20))
+        filled = cv2.morphologyEx(horiz, cv2.MORPH_CLOSE, kernel_v)
+        kernel_h2 = cv2.getStructuringElement(cv2.MORPH_RECT, (50, 1))
+        filled = cv2.morphologyEx(filled, cv2.MORPH_CLOSE, kernel_h2)
+
+        contours, _ = cv2.findContours(
+            filled, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE,
+        )
+
+        frame_h, frame_w = frame.shape[:2]
+        min_width = frame_w * 0.2
+        best_confidence = 0.0
+
+        for contour in contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if h == 0:
+                continue
+            aspect_ratio = w / h
+            max_height = max(frame_h * 0.25, 15)
+            if w >= min_width and aspect_ratio >= 8 and h <= max_height:
+                confidence = min(1.0, (w / frame_w) * (aspect_ratio / 20))
+                best_confidence = max(best_confidence, confidence)
+
+        self.last_confidence = best_confidence
+        if best_confidence >= 0.3:
+            logger.debug(
+                "Edge-based bar detected (red scene): confidence={:.3f}",
+                best_confidence,
+            )
+        else:
+            logger.trace("Edge-based bar confidence: {:.3f}", best_confidence)
+        return best_confidence >= 0.3
 
     def _extract_red_mask(
         self, frame: np.ndarray, sat_min: int = 40, val_min: int = 40,
@@ -176,7 +228,7 @@ class HealthBarDetector:
             # Health bar: wide, thin, high aspect ratio.
             # Max height rejects tall UI elements (menus, text) that happen
             # to be red — real boss bars are very thin (<15% of crop height).
-            max_height = max(frame_h * 0.15, 15)
+            max_height = max(frame_h * 0.25, 15)
             if w >= min_width and aspect_ratio >= 8 and h <= max_height:
                 confidence = min(1.0, (w / frame_w) * (aspect_ratio / 20))
                 best_confidence = max(best_confidence, confidence)
