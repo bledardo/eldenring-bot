@@ -39,12 +39,6 @@
     ]
   },
   {
-    "name": "Aigle Tempête",
-    "locations": [
-      "Château de Voilorage"
-    ]
-  },
-  {
     "name": "Alecto, meneuse des Couteaux noirs",
     "locations": [
       "Autel lunaire: Geôle éternelle de la meneuse des Couteaux noirs"
@@ -419,12 +413,6 @@
     ]
   },
   {
-    "name": "Dragon de Pierre d'Éclat",
-    "locations": [
-      "Autel du Clair de Lune, Liurnia"
-    ]
-  },
-  {
     "name": "Dragon du magma",
     "locations": [
       "Caelid: Galerie de Gael",
@@ -559,12 +547,6 @@
     "locations": [
       "Profondeurs de Fonderacine",
       "Profondeurs de la Souche"
-    ]
-  },
-  {
-    "name": "Félin Léonin Géant",
-    "locations": [
-      "Château Morne, Péninsule des Pleurs"
     ]
   },
   {
@@ -820,12 +802,6 @@
     ]
   },
   {
-    "name": "Loup Léonin Géant",
-    "locations": [
-      "Château Morne, Péninsule des Pleurs"
-    ]
-  },
-  {
     "name": "Loup rouge du champion",
     "locations": [
       "Mont Gelmir: Tombe des héros de Gelmir",
@@ -921,12 +897,6 @@
     ]
   },
   {
-    "name": "Fleur de Miranda",
-    "locations": [
-      "Péninsule larmoyante: Grotte de la Pierre Tombale"
-    ]
-  },
-  {
     "name": "Miranda la Fleur galeuse",
     "locations": [
       "Plateau Altus: Grotte du Parfumeur",
@@ -994,15 +964,6 @@
       "Caelid: Catacombes de Caelid",
       "Liurnia, contrée lacustre: Catacombes des Couteaux noirs",
       "Péninsule larmoyante: Catacombes du Val-aux-Tombes"
-    ]
-  },
-  {
-    "name": "Ombre Funeste",
-    "locations": [
-      "Liurnia, Porte de la Ville Nord (nuit)",
-      "Caelid, Marécage d'Aeonia Sud (nuit)",
-      "Cimes des Géants (nuit)",
-      "Ermitage de l'Apostat, Plaine Enneigée Consacrée (nuit)"
     ]
   },
   {
@@ -1130,12 +1091,6 @@
     "name": "Rennala, reine de la pleine lune",
     "locations": [
       "Académie de Raya Lucaria"
-    ]
-  },
-  {
-    "name": "Revenant Royal",
-    "locations": [
-      "Ruines du Royaume, Liurnia"
     ]
   },
   {
@@ -1282,24 +1237,6 @@
     "name": "Trio de Cristalliens",
     "locations": [
       "Planque de Sellia, Caelid"
-    ]
-  },
-  {
-    "name": "Troll Chevalier",
-    "locations": [
-      "Limgrave (monde ouvert)"
-    ]
-  },
-  {
-    "name": "Troll de Pierre",
-    "locations": [
-      "Limgrave (monde ouvert)"
-    ]
-  },
-  {
-    "name": "Troll des Ruines",
-    "locations": [
-      "Limgrave (monde ouvert)"
     ]
   },
   {
