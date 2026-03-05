@@ -195,6 +195,13 @@
     ]
   },
   {
+    "name": "Chevalier Peau-de-dragon",
+    "locations": [
+      "Rivière de Siofra",
+      "Lac de Pourriture"
+    ]
+  },
+  {
     "name": "Chevalier de la Geôle Solitaire",
     "locations": [
       "Plaine sépulcrale: Mausolée occidental sans nom"
@@ -259,13 +266,6 @@
     ]
   },
   {
-    "name": "Chevalier Peau-de-dragon",
-    "locations": [
-      "Rivière de Siofra",
-      "Lac de Pourriture"
-    ]
-  },
-  {
     "name": "Chevalier putride",
     "locations": [
       "Côte céruléenne: Fissure des cercueils de pierre"
@@ -304,6 +304,13 @@
     ]
   },
   {
+    "name": "Commandant Gaïus",
+    "locations": [
+      "Panorama occulte",
+      "Shadow Keep, Porte Arrière, Scadu Altus"
+    ]
+  },
+  {
     "name": "Commandant Niall",
     "locations": [
       "Cimes des Géants: Solcastel"
@@ -313,13 +320,6 @@
     "name": "Commandant O'Neil",
     "locations": [
       "Caelid: Marais d'Ivoine"
-    ]
-  },
-  {
-    "name": "Commandant Gaïus",
-    "locations": [
-      "Panorama occulte",
-      "Shadow Keep, Porte Arrière, Scadu Altus"
     ]
   },
   {
@@ -413,17 +413,17 @@
     ]
   },
   {
-    "name": "Dragon du magma",
-    "locations": [
-      "Caelid: Galerie de Gael",
-      "Mont Gelmir: Fort Laiedd"
-    ]
-  },
-  {
     "name": "Dragon du Pic déchiqueté",
     "locations": [
       "Pic déchiqueté: Flanc du Pic déchiqueté",
       "Pic déchiqueté: Pied du Pic déchiqueté"
+    ]
+  },
+  {
+    "name": "Dragon du magma",
+    "locations": [
+      "Caelid: Galerie de Gael",
+      "Mont Gelmir: Fort Laiedd"
     ]
   },
   {
@@ -809,15 +809,15 @@
     ]
   },
   {
-    "name": "Mage de bataille Hugues",
-    "locations": [
-      "Tertre draconique de Greyoll: Geôle éternelle de Sellia"
-    ]
-  },
-  {
     "name": "Mage Royal Miriam",
     "locations": [
       "Salle d'Étude de Caria, Liurnia"
+    ]
+  },
+  {
+    "name": "Mage de bataille Hugues",
+    "locations": [
+      "Tertre draconique de Greyoll: Geôle éternelle de Sellia"
     ]
   },
   {
@@ -897,16 +897,16 @@
     ]
   },
   {
+    "name": "Miranda la Fleur Vénéneuse",
+    "locations": [
+      "Grotte du Parfumeur, Altus"
+    ]
+  },
+  {
     "name": "Miranda la Fleur galeuse",
     "locations": [
       "Plateau Altus: Grotte du Parfumeur",
       "Péninsule larmoyante: Cavernes du Val-aux-Tombes"
-    ]
-  },
-  {
-    "name": "Miranda la Fleur Vénéneuse",
-    "locations": [
-      "Grotte du Parfumeur, Altus"
     ]
   },
   {
@@ -1091,6 +1091,12 @@
     "name": "Rennala, reine de la pleine lune",
     "locations": [
       "Académie de Raya Lucaria"
+    ]
+  },
+  {
+    "name": "Revenant Royal",
+    "locations": [
+      "Liurnia, contrée lacustre: Ruines du Royaume"
     ]
   },
   {
