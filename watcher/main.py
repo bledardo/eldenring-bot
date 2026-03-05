@@ -71,6 +71,25 @@ except (ModuleNotFoundError, ImportError) as _import_err:
     sys.exit(1)
 
 
+def _kill_other_instances() -> None:
+    """Kill other running instances of this exe (avoids duplicates after update)."""
+    if not getattr(sys, "frozen", False):
+        return  # Only relevant for packaged exe
+    try:
+        import psutil
+        my_pid = os.getpid()
+        my_name = os.path.basename(sys.executable).lower()
+        for proc in psutil.process_iter(["pid", "name"]):
+            if proc.info["pid"] == my_pid:
+                continue
+            if proc.info["name"] and proc.info["name"].lower() == my_name:
+                logger.info("Killing old instance (PID: {})", proc.info["pid"])
+                proc.kill()
+                proc.wait(timeout=5)
+    except Exception as exc:
+        logger.debug("Could not kill other instances: {}", exc)
+
+
 def main() -> None:
     """Main entry point — wires config, logging, tray, process monitor, and watcher."""
     # Configure Tesseract paths before anything else
@@ -87,6 +106,9 @@ def main() -> None:
     logger.info("=" * 50)
     logger.info("Elden Ring Watcher v{}", __version__)
     logger.info("=" * 50)
+
+    # Kill any lingering old instances (e.g. after auto-update)
+    _kill_other_instances()
 
     # Initialize event pipeline
     queue = EventQueue(config.data_dir / "queue")
