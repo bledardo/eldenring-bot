@@ -26,7 +26,7 @@ from watcher.detectors.boss_name import BossNameDetector
 from watcher.detectors.enemy_felled import EnemyFelledDetector
 from watcher.detectors.coop import CoopDetector
 from watcher.http_client import WatcherHttpClient
-from watcher.state_machine import BossFightFSM, FightState
+from watcher.state_machine import BossFightFSM, FightState, PHASE_TRANSITIONS
 from watcher.tray import TrayApp, TrayStatus
 
 
@@ -155,6 +155,7 @@ class Watcher:
         self._current_boss_is_fallback: bool = False
         self._last_ocr_confirm_time: float = 0.0  # rate-limit OCR confirmation (1/sec)
         self._last_ocr_retry_time: float = 0.0  # rate-limit OCR retry in ACTIVE_FIGHT (2s)
+        self._last_phase_check_time: float = 0.0  # rate-limit phase transition OCR (5s)
         self.last_frame_time: float = 0.0  # Updated every loop iteration (for watchdog)
 
     def start(self, game_pid: int, session_id: str | None = None) -> None:
@@ -448,6 +449,32 @@ class Watcher:
                             # Send the encounter event that was skipped for "Unknown Boss"
                             self._on_encounter(retry_name)
 
+                # Phase transition check: periodically re-run OCR during
+                # ACTIVE_FIGHT for known multi-phase bosses (e.g. Clerc Bestial
+                # → Maliketh) where the health bar stays visible during the
+                # transformation and never enters FIGHT_RESOLVING.
+                if (
+                    self._fsm.state == FightState.ACTIVE_FIGHT
+                    and bar_detected
+                    and self._current_boss_name in PHASE_TRANSITIONS
+                    and time.time() - self._last_phase_check_time >= 5.0
+                ):
+                    self._last_phase_check_time = time.time()
+                    if boss_bar_frame is not None:
+                        bar_h = boss_bar_frame.shape[0]
+                        name_bottom = int(bar_h * 0.45)
+                        phase_frame = boss_bar_frame[:name_bottom, :]
+                        phase_name = self._boss_name.detect(phase_frame)
+                        if phase_name and phase_name != self._current_boss_name:
+                            logger.info(
+                                "Phase transition detected via OCR: {} → {}",
+                                self._current_boss_name, phase_name,
+                            )
+                            self._current_boss_name = phase_name
+                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
+                            boss_name = phase_name
+                            self._fsm._current_boss = phase_name
+
                 # During FIGHT_RESOLVING, require higher confidence for bar
                 # reappearance.  The structural fallback often picks up red
                 # scene elements at 0.3-0.6 confidence — these are NOT the
@@ -640,6 +667,7 @@ class Watcher:
         self._resolve_log_count = 0
         self._last_ocr_confirm_time = 0.0
         self._last_ocr_retry_time = 0.0
+        self._last_phase_check_time = 0.0
 
     def _save_debug_screenshot(
         self, bar_detected: bool, death_detected: bool, frame: np.ndarray | None = None,
