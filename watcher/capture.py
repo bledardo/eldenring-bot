@@ -224,6 +224,21 @@ class ScreenCapture:
         """Return detected screen resolution."""
         return (self._screen_width, self._screen_height)
 
+    def reinitialize(self) -> None:
+        """Re-initialize capture backend after cleanup (e.g. watchdog restart)."""
+        if self._camera is not None or self._sct is not None:
+            return  # Already initialized
+
+        self._backend = "none"
+        if self._init_bettercam():
+            self._backend = "bettercam"
+        elif self._init_mss():
+            self._backend = "mss"
+        else:
+            logger.error("No capture backend available on reinitialize!")
+
+        logger.info("Screen capture re-initialized via {}", self._backend)
+
     def cleanup(self) -> None:
         """Release capture resources."""
         if self._camera is not None:

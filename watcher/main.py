@@ -161,13 +161,20 @@ def main() -> None:
     )
 
     # Callbacks for game lifecycle
+    def _watcher_thread_target(pid: int, sid: str) -> None:
+        """Wrapper around watcher_instance.start() to log uncaught exceptions."""
+        try:
+            watcher_instance.start(pid, sid)
+        except Exception:
+            logger.opt(exception=True).error("Watcher thread crashed!")
+
     def on_launch(pid: int) -> None:
         nonlocal watcher_thread, session_id
         session_id = str(uuid.uuid4())
         logger.info("Elden Ring detected (PID: {}, session: {})", pid, session_id)
         # Start watcher in background thread
         watcher_thread = threading.Thread(
-            target=watcher_instance.start,
+            target=_watcher_thread_target,
             args=(pid, session_id),
             daemon=True,
         )
@@ -246,7 +253,7 @@ def main() -> None:
         session_id = str(uuid.uuid4())
         logger.info("Watchdog: respawning watcher (PID: {}, session: {})", pid, session_id)
         watcher_thread = threading.Thread(
-            target=watcher_instance.start,
+            target=_watcher_thread_target,
             args=(pid, session_id),
             daemon=True,
         )

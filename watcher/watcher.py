@@ -30,31 +30,44 @@ from watcher.state_machine import BossFightFSM, FightState
 from watcher.tray import TrayApp, TrayStatus
 
 
-def _find_game_window(pid: int) -> int | None:
+def _find_game_window(pid: int, retries: int = 5, delay: float = 1.0) -> int | None:
     """Find the game window handle from PID.
 
     Uses win32gui on Windows, returns None on other platforms.
+    Retries a few times because the window may not exist yet right after
+    the process is detected.
     """
     try:
         import win32gui
         import win32process
-
-        result: list[int] = []
-
-        def enum_callback(hwnd: int, _: object) -> None:
-            _, found_pid = win32process.GetWindowThreadProcessId(hwnd)
-            if found_pid == pid and win32gui.IsWindowVisible(hwnd):
-                result.append(hwnd)
-
-        win32gui.EnumWindows(enum_callback, None)
-        return result[0] if result else None
-
     except ImportError:
         logger.debug("win32gui not available (not on Windows)")
         return None
-    except Exception as exc:
-        logger.warning("Failed to find game window: {}", exc)
-        return None
+
+    for attempt in range(retries):
+        try:
+            result: list[int] = []
+
+            def enum_callback(hwnd: int, _: object) -> None:
+                _, found_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if found_pid == pid and win32gui.IsWindowVisible(hwnd):
+                    result.append(hwnd)
+
+            win32gui.EnumWindows(enum_callback, None)
+            if result:
+                return result[0]
+
+            if attempt < retries - 1:
+                logger.debug("Game window not found (attempt {}/{}), retrying in {:.0f}s...",
+                             attempt + 1, retries, delay)
+                time.sleep(delay)
+
+        except Exception as exc:
+            logger.warning("Failed to find game window: {}", exc)
+            return None
+
+    logger.warning("Game window not found after {} attempts", retries)
+    return None
 
 
 def _is_game_focused(hwnd: int | None) -> bool:
@@ -151,6 +164,9 @@ class Watcher:
             game_pid: PID of the game process.
             session_id: Session UUID shared across all events in this session.
         """
+        # Re-initialize capture if it was cleaned up (e.g. watchdog restart)
+        self._capture.reinitialize()
+
         self._game_hwnd = _find_game_window(game_pid)
         self._running = True
         self._session_id = session_id
