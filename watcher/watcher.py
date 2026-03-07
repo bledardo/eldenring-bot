@@ -498,6 +498,17 @@ class Watcher:
                     kill_detected=kill_detected,
                 )
 
+                # Sync watcher boss name if FSM updated it (e.g. Unknown → valid name)
+                if (
+                    prev_fsm_state == FightState.FIGHT_RESOLVING
+                    and self._fsm.state == FightState.ACTIVE_FIGHT
+                    and self._fsm._current_boss
+                    and self._fsm._current_boss != self._current_boss_name
+                ):
+                    logger.info("Syncing boss name from FSM: {}", self._fsm._current_boss)
+                    self._current_boss_name = self._fsm._current_boss
+                    self._current_boss_is_fallback = False
+
                 # Reset health bar confirmer when entering FIGHT_RESOLVING
                 # so that bar reappearance needs 3 fresh consecutive frames.
                 if (

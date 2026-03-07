@@ -293,6 +293,18 @@ class BossFightFSM:
                 logger.info("Bar reappeared — multi-phase transition for {}", self._current_boss)
                 self._resolution_start = None
                 self._transition_to(FightState.ACTIVE_FIGHT)
+            elif self._is_valid_boss_name(boss_name):
+                # Current boss was Unknown/garbage but OCR now reads a valid name
+                logger.info(
+                    "Bar reappeared with valid name {} (was {}) — updating and resuming fight",
+                    boss_name, self._current_boss,
+                )
+                self._current_boss = boss_name
+                self._resolution_start = None
+                if not self._encounter_notified:
+                    self._encounter_notified = True
+                    self._on_encounter(boss_name)
+                self._transition_to(FightState.ACTIVE_FIGHT)
             else:
                 logger.debug("Bar reappeared but boss unknown/garbage — staying in resolving")
             return
@@ -302,7 +314,7 @@ class BossFightFSM:
         if self._resolution_start is not None:
             elapsed = now - self._resolution_start
             effective_timeout = self.resolve_timeout  # 90s default
-            if not self._encounter_notified:
+            if not self._encounter_notified or not self._is_valid_boss_name(self._current_boss):
                 effective_timeout = 15.0
             if elapsed >= effective_timeout:
                 boss = self._current_boss or "Unknown Boss"
