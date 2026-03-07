@@ -521,6 +521,31 @@ class Watcher:
                 if self._config.debug_screenshots:
                     self._save_debug_screenshot(bar_detected, death_detected, full_frame)
 
+                # Periodic bar region dump when DEBUG level and no bar detected.
+                # Saves the boss_bar crop every 10s so we can diagnose missed bars.
+                if (
+                    not bar_detected
+                    and self._fsm.state == FightState.IDLE
+                    and logger.level("DEBUG").no >= logger._core.min_level
+                    and boss_bar_frame is not None
+                ):
+                    now_dbg = time.time()
+                    if not hasattr(self, '_last_bar_dump_time'):
+                        self._last_bar_dump_time = 0.0
+                    if now_dbg - self._last_bar_dump_time >= 10.0:
+                        self._last_bar_dump_time = now_dbg
+                        dump_dir = self._config.data_dir / "screenshots" / "bar_dumps"
+                        dump_dir.mkdir(parents=True, exist_ok=True)
+                        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        cv2.imwrite(
+                            str(dump_dir / f"{ts}_bar_conf{self._health_bar.last_confidence:.3f}.png"),
+                            boss_bar_frame,
+                        )
+                        logger.debug(
+                            "Bar dump saved (confidence={:.3f}, red_ratio check in file)",
+                            self._health_bar.last_confidence,
+                        )
+
                 # Periodic queue flush (every ~30s)
                 now = time.time()
                 if now - self._last_flush_time > 30.0:

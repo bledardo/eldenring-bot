@@ -66,9 +66,17 @@ class TrayApp:
     Use run_detached() to run the tray in a background thread.
     """
 
-    def __init__(self, on_quit: Callable[[], None]) -> None:
+    def __init__(
+        self,
+        on_quit: Callable[[], None],
+        on_restart: Callable[[], None] | None = None,
+        on_toggle_debug: Callable[[], bool] | None = None,
+    ) -> None:
         self._on_quit = on_quit
+        self._on_restart = on_restart
+        self._on_toggle_debug = on_toggle_debug
         self._status = TrayStatus.NO_GAME
+        self._debug_mode = False
         self._log_window: object | None = None  # lazy import to avoid tkinter at module level
 
         if pystray is None:
@@ -87,16 +95,47 @@ class TrayApp:
         """Build the right-click context menu."""
         if pystray is None:
             return None
-        return pystray.Menu(
+
+        debug_label = "Debug Mode: ON" if self._debug_mode else "Debug Mode: OFF"
+
+        items = [
             pystray.MenuItem(
                 f"Status: {_STATUS_LABELS[self._status]}",
                 action=None,
                 enabled=False,
             ),
             pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Restart", self._restart),
+            pystray.MenuItem(debug_label, self._toggle_debug),
             pystray.MenuItem("Logs", self._toggle_logs),
+            pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit", self._quit),
-        )
+        ]
+        return pystray.Menu(*items)
+
+    def _restart(self, icon: object = None, item: object = None) -> None:
+        """Handle restart action from tray menu."""
+        if self._on_restart is not None:
+            logger.info("Restart requested from tray")
+            self._on_restart()
+        else:
+            logger.warning("Restart not available")
+
+    def _toggle_debug(self, icon: object = None, item: object = None) -> None:
+        """Toggle debug mode from tray menu."""
+        if self._on_toggle_debug is not None:
+            self._debug_mode = self._on_toggle_debug()
+            state = "ON" if self._debug_mode else "OFF"
+            logger.info("Debug mode toggled: {}", state)
+            self.notify(f"Debug mode: {state}")
+            # Refresh menu to update label
+            if self.icon is not None:
+                try:
+                    self.icon.menu = self._build_menu()
+                except OSError:
+                    pass
+        else:
+            logger.warning("Debug toggle not available")
 
     def _toggle_logs(self, icon: object = None, item: object = None) -> None:
         """Toggle the log viewer window."""

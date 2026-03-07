@@ -148,8 +148,76 @@ def main() -> None:
             watcher_instance.stop()
         monitor.stop()
 
-    tray = TrayApp(on_quit=request_shutdown)
+    def request_restart() -> None:
+        """Restart the watcher from tray menu."""
+        nonlocal watcher_thread, session_id
+        if watcher_instance is None:
+            return
+        logger.info("Manual restart requested from tray")
+
+        # Stop current watcher
+        try:
+            watcher_instance.stop()
+        except Exception:
+            pass
+
+        # Send session_end for current session
+        _send_session_end()
+
+        # Re-detect the game
+        from watcher.process_monitor import find_game_pid
+        pid = find_game_pid(config.game_process)
+        if pid is None:
+            logger.warning("Restart: game process not found")
+            tray.notify("Restart échoué — jeu non détecté")
+            tray.set_status(TrayStatus.NO_GAME)
+            return
+
+        session_id = str(uuid.uuid4())
+        logger.info("Restart: respawning watcher (PID: {}, session: {})", pid, session_id)
+        watcher_thread = threading.Thread(
+            target=_watcher_thread_target,
+            args=(pid, session_id),
+            daemon=True,
+        )
+        watcher_thread.start()
+        tray.notify("Watcher redémarré")
+
+    def toggle_debug() -> bool:
+        """Toggle debug mode at runtime. Returns new debug state."""
+        current_level = config.log_level
+        if current_level == "DEBUG":
+            config.log_level = "INFO"
+            config.debug_screenshots = False
+            new_debug = False
+        else:
+            config.log_level = "DEBUG"
+            config.debug_screenshots = True
+            new_debug = True
+
+        # Reconfigure loguru handlers
+        setup_logging(config)
+        # Re-install log window sink at new level
+        from watcher.log_window import install_sink
+        install_sink(level=config.log_level)
+
+        logger.info("Log level changed to {} (debug_screenshots={})",
+                     config.log_level, config.debug_screenshots)
+
+        # Persist to config file
+        from watcher.config import _write_config, _DEFAULT_DATA_DIR
+        _write_config(config, _DEFAULT_DATA_DIR / "config.toml")
+
+        return new_debug
+
+    tray = TrayApp(
+        on_quit=request_shutdown,
+        on_restart=request_restart,
+        on_toggle_debug=toggle_debug,
+    )
     tray.set_status(TrayStatus.NO_GAME)
+    # Sync initial debug state with config
+    tray._debug_mode = config.log_level == "DEBUG"
 
     # Create Watcher instance
     watcher_instance = Watcher(config, http_client, tray)
