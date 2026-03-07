@@ -125,10 +125,14 @@ class TrayApp:
         self._status = status
         if self.icon is None:
             return
-        self.icon.icon = _create_icon_image(_STATUS_COLORS[status])
-        self.icon.title = f"Elden Ring Watcher — {_STATUS_LABELS[status]}"
-        # Update menu to reflect new status
-        self.icon.menu = self._build_menu()
+        try:
+            self.icon.icon = _create_icon_image(_STATUS_COLORS[status])
+            self.icon.title = f"Elden Ring Watcher — {_STATUS_LABELS[status]}"
+            # Update menu to reflect new status
+            self.icon.menu = self._build_menu()
+        except OSError:
+            logger.warning("Tray icon handle invalid — skipping status update")
+            return
         logger.debug("Tray status updated: {}", status.value)
 
     def run(self) -> None:
