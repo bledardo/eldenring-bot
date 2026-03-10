@@ -148,6 +148,16 @@ def main() -> None:
             watcher_instance.stop()
         monitor.stop()
 
+    def _join_watcher_thread(timeout: float = 5.0) -> None:
+        """Wait for the old watcher thread to fully stop before starting a new one."""
+        nonlocal watcher_thread
+        if watcher_thread is not None and watcher_thread.is_alive():
+            logger.debug("Waiting for old watcher thread to stop...")
+            watcher_thread.join(timeout=timeout)
+            if watcher_thread.is_alive():
+                logger.warning("Old watcher thread did not stop within {}s", timeout)
+        watcher_thread = None
+
     def request_restart() -> None:
         """Restart the watcher from tray menu."""
         nonlocal watcher_thread, session_id
@@ -155,11 +165,12 @@ def main() -> None:
             return
         logger.info("Manual restart requested from tray")
 
-        # Stop current watcher
+        # Stop current watcher and wait for thread to exit
         try:
             watcher_instance.stop()
         except Exception:
             pass
+        _join_watcher_thread()
 
         # Send session_end for current session
         _send_session_end()
@@ -253,9 +264,9 @@ def main() -> None:
         logger.info("Elden Ring closed")
         if watcher_instance is not None:
             watcher_instance.stop()
+        _join_watcher_thread()
         _send_session_end()
         tray.set_status(TrayStatus.NO_GAME)
-        watcher_thread = None
 
     # Handle Ctrl+C
     def sigint_handler(sig: int, frame: object) -> None:
@@ -302,11 +313,17 @@ def main() -> None:
         nonlocal watcher_thread, session_id
         logger.warning("Watchdog: restarting watcher ({})", reason)
 
-        # Clean up the old watcher
+        # Clean up the old watcher and wait for thread to fully stop
         try:
             watcher_instance.stop()
         except Exception:
             pass
+        _join_watcher_thread()
+
+        # Safety: refuse to spawn if old thread is still alive (shouldn't happen after join)
+        if watcher_thread is not None and watcher_thread.is_alive():
+            logger.error("Watchdog: old thread still alive after join — aborting restart")
+            return
 
         # Send session_end for the dead session
         _send_session_end()
@@ -328,12 +345,15 @@ def main() -> None:
         watcher_thread.start()
 
     def flush_loop() -> None:
+        flush_interval = 0  # First flush immediately
         while not shutdown_requested:
+            # Flush queued events (send_event only enqueues, this does HTTP)
             try:
                 http_client.flush_queue()
             except Exception as exc:
                 logger.debug("Queue flush error: {}", exc)
-            # Watchdog: check watcher thread health
+
+            # Watchdog: check watcher thread health (every cycle)
             if watcher_thread is not None:
                 if not watcher_thread.is_alive():
                     logger.error("Watchdog: watcher thread died unexpectedly!")
@@ -346,8 +366,10 @@ def main() -> None:
                             stale, WATCHDOG_STALE_THRESHOLD,
                         )
                         _restart_watcher("detection loop stale")
-            # Sleep in small increments to respond to shutdown
-            for _ in range(60):  # 30 seconds (60 * 0.5s)
+
+            # Sleep 3s in small increments (fast enough for near-realtime
+            # event delivery, now that send_event only enqueues to disk).
+            for _ in range(6):  # 3 seconds (6 * 0.5s)
                 if shutdown_requested:
                     break
                 __import__("time").sleep(0.5)

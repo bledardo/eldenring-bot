@@ -115,6 +115,7 @@ class Watcher:
         self._http_client = http_client
         self._tray = tray
         self._running = False
+        self._stop_event = threading.Event()  # Per-session stop signal (thread-safe)
         self._game_hwnd: int | None = None
         self._was_paused = False
 
@@ -141,7 +142,6 @@ class Watcher:
         self._current_frame: np.ndarray | None = None  # current frame for callbacks
         self._current_boss_name: str | None = None
         self._coop_detected: bool = False
-        self._last_flush_time: float = 0.0
         self._session_id: str | None = None
         self._fight_start_time: float | None = None
         self._last_global_death_time: float = 0.0
@@ -169,6 +169,7 @@ class Watcher:
 
         self._game_hwnd = _find_game_window(game_pid)
         self._running = True
+        self._stop_event.clear()  # Reset stop signal for new session
         self._session_id = session_id
 
         # Send session start event
@@ -187,6 +188,7 @@ class Watcher:
     def stop(self) -> None:
         """Stop the detection loop."""
         self._running = False
+        self._stop_event.set()  # Signal the detection loop to exit immediately
         self.last_frame_time = 0.0  # Reset so watchdog doesn't trigger after stop
         self._fsm.force_abandon()
         self._capture.cleanup()
@@ -199,7 +201,7 @@ class Watcher:
         last_heartbeat = time.time()
         none_frame_count = 0
 
-        while self._running:
+        while self._running and not self._stop_event.is_set():
             try:
                 frame_start = time.perf_counter()
                 self.last_frame_time = time.time()
@@ -533,14 +535,8 @@ class Watcher:
                             self._health_bar.last_confidence,
                         )
 
-                # Periodic queue flush (every ~30s)
-                now = time.time()
-                if now - self._last_flush_time > 30.0:
-                    self._last_flush_time = now
-                    threading.Thread(
-                        target=self._http_client.flush_queue,
-                        daemon=True,
-                    ).start()
+                # Queue flush handled by flush_loop in main.py — no need to
+                # spawn threads here (avoids dual-flush race conditions).
 
                 # Frame pacing
                 elapsed = time.perf_counter() - frame_start
@@ -567,7 +563,8 @@ class Watcher:
             logger.info("Co-op detected — skipping encounter event for {}", boss_name)
             return
 
-        self._fight_start_time = time.time()
+        if self._fight_start_time is None:
+            self._fight_start_time = time.time()
 
         if boss_name == "Unknown Boss":
             if not self._unknown_boss_logged:

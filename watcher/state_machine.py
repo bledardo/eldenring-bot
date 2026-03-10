@@ -22,6 +22,7 @@ PHASE_TRANSITIONS: dict[str, str] = {
     "Godfrey, premier Seigneur d'Elden": "Hoarah Loux, le Guerrier",
     "Serpent dévoreur de dieux": "Rykard, seigneur du blasphème",
     "Messmer l'Empaleur": "Messmer, serpent maléfique",
+    "Malenia, épée de Miquella": "Malenia, déesse de la putréfaction",
 }
 
 # Build reverse mapping for bidirectional lookup
@@ -216,7 +217,7 @@ class BossFightFSM:
         if not name or name == "Unknown Boss":
             return False
         # Strip multiplier suffixes like (x2), (x3) before digit check
-        cleaned = re.sub(r'\(x\d+\)$', '', name)
+        cleaned = re.sub(r'\s*\(x\d+\)$', '', name)
         # Digits → garbage OCR
         if any(c.isdigit() for c in cleaned):
             return False

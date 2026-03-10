@@ -50,57 +50,24 @@ class WatcherHttpClient:
         return session
 
     def send_event(self, event: dict) -> bool:
-        """Enqueue event to disk first, then attempt HTTP POST.
+        """Enqueue event to disk. Delivery is handled by flush_queue().
+
+        This method is non-blocking: it only writes the event to disk.
+        The flush_loop in main.py calls flush_queue() periodically to
+        deliver queued events via HTTP.  This prevents network issues
+        from blocking the detection loop (which previously could stall
+        for up to ~75 seconds on retries, triggering watchdog restarts
+        and duplicate detection threads).
 
         Args:
             event: Event dictionary to send.
 
         Returns:
-            True if event was successfully sent, False if queued for later.
+            True (event successfully queued).
         """
-        # Always enqueue first for crash safety
-        path = self._queue.enqueue(event)
-
-        if not self._api_url:
-            logger.debug("No API URL configured, event queued only")
-            self._last_success = False
-            return False
-
-        try:
-            payload = {
-                "type": event.get("type", "unknown"),
-                "event_id": event.get("event_id", ""),
-                "data": event,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            response = self._session.post(
-                f"{self._api_url}/api/events",
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {self._api_key}",
-                    "Content-Type": "application/json",
-                },
-                timeout=10,
-            )
-            if response.ok:
-                # Success — dequeue from disk
-                self._queue.dequeue(path)
-                self._last_success = True
-                logger.debug("Event sent: {}", event.get("type", "unknown"))
-                return True
-            else:
-                logger.warning("Event POST failed ({}): {}", response.status_code, response.text[:200])
-                # 4xx = client error (permanent), drop the event to avoid infinite retry
-                if 400 <= response.status_code < 500:
-                    self._queue.dequeue(path)
-                    logger.warning("Event dropped ({}): permanent client error", response.status_code)
-                self._last_success = False
-                return False
-
-        except requests.RequestException as exc:
-            logger.warning("Event POST failed: {}", exc)
-            self._last_success = False
-            return False
+        self._queue.enqueue(event)
+        logger.debug("Event queued: {}", event.get("type", "unknown"))
+        return True
 
     def flush_queue(self) -> int:
         """Attempt to send all queued events (oldest first).
