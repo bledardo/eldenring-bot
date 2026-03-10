@@ -147,7 +147,12 @@ class BossFightFSM:
                 self._transition_to(FightState.ACTIVE_FIGHT)
                 boss = self._current_boss or "Unknown Boss"
                 logger.info("Boss encounter confirmed: {}", boss)
-                self._encounter_notified = True
+                # Only mark as notified if we have a real boss name;
+                # Unknown Boss encounters are skipped by the watcher callback,
+                # so _encounter_notified must stay False to allow a late OCR
+                # read to trigger the encounter event later.
+                if self._is_valid_boss_name(boss):
+                    self._encounter_notified = True
                 self._on_encounter(boss)
         else:
             # Flicker — bar disappeared before confirmation

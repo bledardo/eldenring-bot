@@ -152,7 +152,6 @@ class Watcher:
         self._resolve_log_count: int = 0
         self._resolving_debug_count: int = 0
         self._resolving_gold_saved: bool = False
-        self._current_boss_is_fallback: bool = False
         self._last_ocr_confirm_time: float = 0.0  # rate-limit OCR confirmation (1/sec)
         self._last_ocr_retry_time: float = 0.0  # rate-limit OCR retry in ACTIVE_FIGHT (2s)
         self._last_phase_check_time: float = 0.0  # rate-limit phase transition OCR (5s)
@@ -264,7 +263,6 @@ class Watcher:
                                 )
                                 bar_detected = True
                                 self._current_boss_name = ocr_name
-                                self._current_boss_is_fallback = self._boss_name.last_was_fallback
                     elif self._fsm.state == FightState.ENCOUNTER_PENDING:
                         # Already OCR-confirmed recently, keep treating doubtful
                         # bar as detected to accumulate confirmation frames.
@@ -352,21 +350,16 @@ class Watcher:
                         bottom_half = double_bar_frame[dh // 2:, :]
 
                         name1 = self._boss_name.detect(top_half)
-                        fallback1 = self._boss_name.last_was_fallback
                         name2 = self._boss_name.detect(bottom_half)
-                        fallback2 = self._boss_name.last_was_fallback
 
                         if name1 and name2 and name1 != name2:
                             detected_name = f"{name1} & {name2}"
-                            self._current_boss_is_fallback = fallback1 or fallback2
                             logger.info("Double boss identified: {} & {}", name1, name2)
                         elif name1:
                             detected_name = name1
-                            self._current_boss_is_fallback = fallback1
                             logger.info("Double boss region but only one name: {}", name1)
                         elif name2:
                             detected_name = name2
-                            self._current_boss_is_fallback = fallback2
                             logger.info("Double boss region but only one name: {}", name2)
 
                     if detected_name is None:
@@ -390,10 +383,7 @@ class Watcher:
                             logger.info("OCR during resolving: {}", detected_name)
                         else:
                             self._current_boss_name = detected_name
-                            if bar_count < 2:
-                                self._current_boss_is_fallback = self._boss_name.last_was_fallback
-                            logger.info("Boss identified: {}{}", detected_name,
-                                        " (OCR fallback)" if self._current_boss_is_fallback else "")
+                            logger.info("Boss identified: {}", detected_name)
                         # Save encounter screenshot
                         if self._config.debug_screenshots:
                             self._save_debug_screenshot(bar_detected, False)
@@ -442,7 +432,6 @@ class Watcher:
                         if retry_name:
                             logger.info("OCR retry found boss name: {}", retry_name)
                             self._current_boss_name = retry_name
-                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
                             boss_name = retry_name
                             # Update FSM's internal boss name
                             self._fsm._current_boss = retry_name
@@ -471,7 +460,6 @@ class Watcher:
                                 self._current_boss_name, phase_name,
                             )
                             self._current_boss_name = phase_name
-                            self._current_boss_is_fallback = self._boss_name.last_was_fallback
                             boss_name = phase_name
                             self._fsm._current_boss = phase_name
 
@@ -507,7 +495,6 @@ class Watcher:
                 ):
                     logger.info("Syncing boss name from FSM: {}", self._fsm._current_boss)
                     self._current_boss_name = self._fsm._current_boss
-                    self._current_boss_is_fallback = False
 
                 # Reset health bar confirmer when entering FIGHT_RESOLVING
                 # so that bar reappearance needs 3 fresh consecutive frames.
@@ -599,6 +586,10 @@ class Watcher:
         except Exception as exc:
             logger.debug("Failed to capture encounter screenshot: {}", exc)
 
+        # Mark encounter as notified in FSM (prevents duplicate sends from
+        # both retry-OCR and fight_resolving bar-reappearance paths).
+        self._fsm._encounter_notified = True
+
         logger.info("Boss encounter: {}", boss_name)
         event = {
             "type": "boss_encounter",
@@ -607,8 +598,6 @@ class Watcher:
             "session_id": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
-        if self._current_boss_is_fallback:
-            event["ocr_fallback"] = True
         if self._encounter_screenshot:
             event["screenshot_base64"] = self._encounter_screenshot
         self._http_client.send_event(event)
@@ -692,7 +681,6 @@ class Watcher:
     def _reset_fight_state(self) -> None:
         """Reset per-fight tracking state."""
         self._current_boss_name = None
-        self._current_boss_is_fallback = False
         self._coop_detected = False
         self._fight_start_time = None
         self._kill_screenshot = None

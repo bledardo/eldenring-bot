@@ -52,7 +52,6 @@ class BossNameDetector:
         self._ocr_available = False
         self.last_raw_ocr: str | None = None
         self.last_match_score: int | None = None
-        self.last_was_fallback: bool = False
 
         # Load boss names (supports both legacy list[str] and new list[dict] format)
         try:
@@ -212,52 +211,6 @@ class BossNameDetector:
                 return None
         return cleaned
 
-    # Common French item/menu keywords that are never boss names
-    _ITEM_KEYWORDS = frozenset({
-        "cendres", "carte", "langue", "acheter",
-        "vendre", "fabriquer", "champignon", "rune",
-        "flacon", "parchemin", "clé", "graine", "talisman",
-        "coquillage", "écaille", "plume", "racine",
-    })
-
-    @staticmethod
-    def _looks_like_boss_name(text: str) -> bool:
-        """Extra validation for OCR fallback — stricter than _clean_ocr_text.
-
-        A real boss name (in French) has:
-        - At least one capitalized word ≥4 chars (e.g. "Margit", "Radahn")
-        - Not too many words (boss names are ≤8 words)
-        - At least 6 total alpha chars
-        - No digits (no boss name contains numbers)
-        - Not ALL CAPS (French boss names use Title Case)
-        - No common item/menu keywords
-        """
-        # Reject text with digits — no boss name contains numbers
-        if any(c.isdigit() for c in text):
-            return False
-        tokens = text.split()
-        # Too many words = likely OCR reading UI/subtitles
-        if len(tokens) > 8:
-            return False
-        # Reject ALL CAPS tokens — real French boss names use Title Case
-        all_caps_tokens = sum(1 for t in tokens if len(t) >= 3 and t == t.upper())
-        if all_caps_tokens >= 2:
-            return False
-        # Must have enough total alpha chars
-        alpha_total = sum(1 for c in text if c.isalpha())
-        if alpha_total < 6:
-            return False
-        # Reject common item/menu keywords
-        lower_tokens = {t.lower() for t in tokens}
-        if lower_tokens & BossNameDetector._ITEM_KEYWORDS:
-            return False
-        # Must have at least one capitalized word ≥4 chars
-        has_proper_word = any(
-            len(t) >= 4 and t[0].isupper()
-            for t in tokens
-        )
-        return has_proper_word
-
     @staticmethod
     def _length_ratio(ocr_text: str, candidate: str) -> float:
         """Return len(ocr) / len(candidate).  Prevents short OCR fragments
@@ -345,7 +298,6 @@ class BossNameDetector:
         Returns:
             Canonical boss name or None.
         """
-        self.last_was_fallback = False
         if frame is None or frame.size == 0:
             return None
         if not self._ocr_available:
@@ -394,43 +346,6 @@ class BossNameDetector:
         # Store debug images for the watcher to save on failure
         self._last_debug_frames = debug_preprocessed
         self._last_input_frame = frame
-
-        # Fallback: pick the cleanest OCR text across all strategies
-        # so the boss is tracked even if not in the canonical list.
-        # Stricter than _clean_ocr_text — must look like a real boss name
-        # AND have a minimum fuzzy proximity to at least one known boss
-        # (rejects total garbage like "WOT ARES TRON 7l").
-        min_fallback_proximity = 65  # must clearly resemble a real boss
-        best_cleaned: str | None = None
-        best_alpha = 0
-        for raw in all_raw_texts:
-            cleaned = self._clean_ocr_text(raw)
-            if cleaned and self._looks_like_boss_name(cleaned):
-                # Check fuzzy proximity to any known boss
-                if fuzz is not None and rfprocess is not None and self._boss_names:
-                    best_match = rfprocess.extractOne(
-                        cleaned, self._boss_names, scorer=fuzz.token_set_ratio,
-                    )
-                    if not best_match or best_match[1] < min_fallback_proximity:
-                        logger.debug(
-                            "OCR fallback rejected — too far from any known boss: "
-                            "'{}' (best: '{}', score={})",
-                            cleaned,
-                            best_match[0] if best_match else "?",
-                            int(best_match[1]) if best_match else 0,
-                        )
-                        continue
-                alpha = sum(1 for c in cleaned if c.isalpha())
-                if alpha > best_alpha:
-                    best_alpha = alpha
-                    best_cleaned = cleaned
-        if best_cleaned:
-            self.last_was_fallback = True
-            logger.info(
-                "OCR fallback: no canonical match, using cleaned text: '{}'",
-                best_cleaned,
-            )
-            return best_cleaned
 
         logger.debug("OCR: no valid match from any strategy")
         return None
