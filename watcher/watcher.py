@@ -520,8 +520,31 @@ class Watcher:
                     and self._fsm._current_boss
                     and self._fsm._current_boss != self._current_boss_name
                 ):
+                    old_boss = self._current_boss_name
                     logger.info("Syncing boss name from FSM: {}", self._fsm._current_boss)
                     self._current_boss_name = self._fsm._current_boss
+                    # Send phase_transition event (bar disappeared during cutscene
+                    # then reappeared with new name, e.g. Malenia phase 2)
+                    if old_boss and old_boss != self._fsm._current_boss:
+                        phase_screenshot = None
+                        try:
+                            if full_frame is not None:
+                                _, png_buf = cv2.imencode(".png", full_frame)
+                                phase_screenshot = base64.b64encode(png_buf).decode("ascii")
+                        except Exception:
+                            pass
+                        event = {
+                            "type": "phase_transition",
+                            "event_id": str(uuid.uuid4()),
+                            "boss_canonical_name": old_boss,
+                            "phase2_name": self._fsm._current_boss,
+                            "session_id": self._session_id,
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                        if phase_screenshot:
+                            event["screenshot_base64"] = phase_screenshot
+                        self._http_client.send_event(event)
+                        logger.info("Phase transition event sent: {} → {}", old_boss, self._fsm._current_boss)
 
                 # Reset health bar confirmer when entering FIGHT_RESOLVING
                 # so that bar reappearance needs 3 fresh consecutive frames.
