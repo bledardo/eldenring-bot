@@ -466,9 +466,29 @@ class Watcher:
                                 "Phase transition detected via OCR: {} → {}",
                                 self._current_boss_name, phase_name,
                             )
+                            old_boss = self._current_boss_name
                             self._current_boss_name = phase_name
                             boss_name = phase_name
                             self._fsm._current_boss = phase_name
+                            # Send phase_transition event with screenshot
+                            phase_screenshot = None
+                            try:
+                                if full_frame is not None:
+                                    _, png_buf = cv2.imencode(".png", full_frame)
+                                    phase_screenshot = base64.b64encode(png_buf).decode("ascii")
+                            except Exception as exc:
+                                logger.debug("Failed to capture phase screenshot: {}", exc)
+                            event = {
+                                "type": "phase_transition",
+                                "event_id": str(uuid.uuid4()),
+                                "boss_canonical_name": old_boss,
+                                "phase2_name": phase_name,
+                                "session_id": self._session_id,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                            }
+                            if phase_screenshot:
+                                event["screenshot_base64"] = phase_screenshot
+                            self._http_client.send_event(event)
 
                 # During FIGHT_RESOLVING, require higher confidence for bar
                 # reappearance.  The structural fallback often picks up red
