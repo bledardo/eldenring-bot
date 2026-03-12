@@ -417,13 +417,18 @@ class Watcher:
                                         str(dbg_dir / f"{ts}_preproc_{label}.png"), img,
                                     )
 
-                # Retry OCR in ACTIVE_FIGHT when boss name is unknown.
-                # This catches cases where the first OCR failed (e.g. bar was
-                # partially loaded) but the boss name becomes readable later.
+                # Retry OCR when boss name is unknown.
+                # Fast retry (500ms) during ENCOUNTER_PENDING to catch text
+                # that wasn't fully rendered on the first frame.
+                # Slower retry (2s) during ACTIVE_FIGHT as a fallback.
+                ocr_retry_interval = (
+                    0.5 if self._fsm.state == FightState.ENCOUNTER_PENDING
+                    else 2.0
+                )
                 if (
-                    self._fsm.state == FightState.ACTIVE_FIGHT
+                    self._fsm.state in (FightState.ENCOUNTER_PENDING, FightState.ACTIVE_FIGHT)
                     and self._current_boss_name is None
-                    and time.time() - self._last_ocr_retry_time >= 2.0
+                    and time.time() - self._last_ocr_retry_time >= ocr_retry_interval
                 ):
                     self._last_ocr_retry_time = time.time()
                     if boss_bar_frame is not None:

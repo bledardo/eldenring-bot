@@ -88,6 +88,12 @@ class BossNameDetector:
             except Exception as exc:
                 logger.error("Tesseract not found or not working: {}", exc)
 
+    @staticmethod
+    def _sharpen(img: np.ndarray) -> np.ndarray:
+        """Unsharp mask to restore edge sharpness lost during upscale."""
+        blurred = cv2.GaussianBlur(img, (0, 0), sigmaX=2)
+        return cv2.addWeighted(img, 1.5, blurred, -0.5, 0)
+
     def _preprocess(self, frame: np.ndarray) -> np.ndarray:
         """Preprocessing pipeline for OCR accuracy.
 
@@ -98,6 +104,7 @@ class BossNameDetector:
         """
         h, w = frame.shape[:2]
         upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+        upscaled = self._sharpen(upscaled)
 
         gray = cv2.cvtColor(upscaled, cv2.COLOR_BGR2GRAY)
 
@@ -117,6 +124,7 @@ class BossNameDetector:
         """
         h, w = frame.shape[:2]
         upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+        upscaled = self._sharpen(upscaled)
 
         hsv = cv2.cvtColor(upscaled, cv2.COLOR_BGR2HSV)
         # White/light text: low saturation (<60) AND high value (>160)
@@ -134,6 +142,7 @@ class BossNameDetector:
         """Same as white_text but with relaxed thresholds for darker scenes."""
         h, w = frame.shape[:2]
         upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+        upscaled = self._sharpen(upscaled)
 
         hsv = cv2.cvtColor(upscaled, cv2.COLOR_BGR2HSV)
         # Relaxed: saturation < 100, value > 120
@@ -153,6 +162,7 @@ class BossNameDetector:
         """
         h, w = frame.shape[:2]
         upscaled = cv2.resize(frame, (w * 4, h * 4), interpolation=cv2.INTER_CUBIC)
+        upscaled = self._sharpen(upscaled)
 
         gray = cv2.cvtColor(upscaled, cv2.COLOR_BGR2GRAY)
         # Boss name text is bright white (180+)
@@ -170,7 +180,7 @@ class BossNameDetector:
         try:
             text = pytesseract.image_to_string(
                 preprocessed,
-                config="--psm 7 -l fra+eng",
+                config="--psm 7 -l fra",
             ).strip()
             return text if text else None
         except Exception as exc:
@@ -245,7 +255,7 @@ class BossNameDetector:
             scorers = [
                 ("ratio", fuzz.ratio, 65),
                 ("token_sort", fuzz.token_sort_ratio, 65),
-                ("token_set", fuzz.token_set_ratio, 75),
+                ("token_set", fuzz.token_set_ratio, 70),
             ]
 
             for scorer_name, scorer, cutoff in scorers:
@@ -319,9 +329,11 @@ class BossNameDetector:
             ("otsu", self._preprocess),
         ]
 
-        # Save preprocessed debug images on first call per detect()
+        # Run all strategies and keep the best match (highest score)
         debug_preprocessed: dict[str, np.ndarray] = {}
-        all_raw_texts: list[str] = []
+        best_name: str | None = None
+        best_score: int = 0
+        best_label: str = ""
 
         for label, preprocess_fn in strategies:
             preprocessed = preprocess_fn(frame)
@@ -330,22 +342,27 @@ class BossNameDetector:
             if not raw_text:
                 continue
             self.last_raw_ocr = raw_text
-            all_raw_texts.append(raw_text)
             logger.debug("OCR [{}] raw text: '{}'", label, raw_text)
 
-            # Try matching raw text first, then cleaned version (without trailing noise)
-            result = self.match_name(raw_text)
-            if result:
-                return result[0]
-            cleaned = self._clean_ocr_text(raw_text)
-            if cleaned and cleaned != raw_text:
-                result = self.match_name(cleaned)
-                if result:
-                    return result[0]
+            # Try matching raw text first, then cleaned version
+            for text in (raw_text, self._clean_ocr_text(raw_text)):
+                if not text:
+                    continue
+                result = self.match_name(text)
+                if result and result[1] > best_score:
+                    best_name, best_score = result
+                    best_label = label
 
         # Store debug images for the watcher to save on failure
         self._last_debug_frames = debug_preprocessed
         self._last_input_frame = frame
+
+        if best_name:
+            logger.debug(
+                "OCR best match [{}]: '{}' (score={})",
+                best_label, best_name, best_score,
+            )
+            return best_name
 
         logger.debug("OCR: no valid match from any strategy")
         return None
