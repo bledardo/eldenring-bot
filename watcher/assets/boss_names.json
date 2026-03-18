@@ -610,7 +610,14 @@
       "Tombe Cachée de Charo, Côte Méridionale",
       "Rivière Ellac, Côte Méridionale",
       "Ruines Anciennes de Rauh Est",
-      "Est de la Cathédrale de Manus Metyr, Scadu Altus"
+      "Est de la Cathédrale de Manus Metyr, Scadu Altus",
+      "Plaine sépulcrale: Ruines Brûlées",
+      "Altus Occulte: Route vers Shadow Keep",
+      "Altus Occulte: Quartier de l'Église",
+      "Altus Occulte: Ruines d'Unte",
+      "Tombeau secret de Charo",
+      "Côte céruléenne: Rivière Ellac",
+      "Altus Occulte: Est de la Cathédrale de Manus Metyr"
     ]
   },
   {
@@ -749,7 +756,8 @@
   {
     "name": "Leda et ses Alliés",
     "locations": [
-      "Chambre Purificatrice, Enir-Ilim"
+      "Chambre Purificatrice, Enir-Ilim",
+      "Enir-Ilim: Chambre Purificatrice"
     ]
   },
   {
@@ -780,7 +788,8 @@
   {
     "name": "Logur, la Griffe Bestiale",
     "locations": [
-      "Plaine du Tombeau Sud-Est"
+      "Plaine du Tombeau Sud-Est",
+      "Plaine sépulcrale: Plaine du Tombeau Sud-Est"
     ]
   },
   {
