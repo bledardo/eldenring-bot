@@ -1,0 +1,28 @@
+{
+  "name": "tarnished-bot",
+  "version": "0.1.0",
+  "description": "Discord bot for the Elden Ring community: tracks boss fights via the Elden Ring Watcher, awards Runes per kill, and runs a betting/economy system.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "elden-ring",
+    "souls",
+    "watcher"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2",
+    "vitest": "^1.6.0"
+  }
+}

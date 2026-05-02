@@ -1,0 +1,29 @@
+services:
+  bot:
+    build: .
+    container_name: tarnished-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATA_PATH=/app/data/players.json
+    ports:
+      - "${ER_API_PORT:-3000}:${ER_API_PORT:-3000}"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - default
+#    depends_on:
+#      - ollama
+
+#  ollama:
+#    image: ollama/ollama:latest
+#    container_name: tarnished-ollama
+#    restart: unless-stopped
+#    volumes:
+#      - ollama_data:/root/.ollama
+#    networks:
+#      - default
+
+#volumes:
+#  ollama_data:

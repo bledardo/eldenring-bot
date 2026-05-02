@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elden Ring — Quest Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 40'><path d='M16 0C16 0 6 14 6 24C6 32 10 38 16 40C22 38 26 32 26 24C26 14 16 0 16 0Z' fill='%23c9a84c'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/quests/static/style.css">
+</head>
+<body>
+
+  <!-- Ambient particle canvas -->
+  <canvas id="embers" aria-hidden="true"></canvas>
+
+  <!-- Noise texture overlay -->
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <header>
+    <div class="header-inner">
+      <div class="header-left">
+        <div class="logo-group">
+          <svg class="erdtree-icon" viewBox="0 0 32 40" width="28" height="35" aria-hidden="true">
+            <path d="M16 0 C16 0 6 14 6 24 C6 32 10 38 16 40 C22 38 26 32 26 24 C26 14 16 0 16 0Z" fill="url(#gold-grad)" opacity="0.9"/>
+            <path d="M16 8 C16 8 11 18 11 25 C11 30 13 34 16 36 C19 34 21 30 21 25 C21 18 16 8 16 8Z" fill="url(#gold-grad-inner)" opacity="0.7"/>
+            <defs>
+              <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e8c84a"/>
+                <stop offset="100%" stop-color="#8a6a20"/>
+              </linearGradient>
+              <linearGradient id="gold-grad-inner" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#fff3c4"/>
+                <stop offset="100%" stop-color="#c9a84c"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="title-block">
+            <h1>Elden Ring</h1>
+            <span class="subtitle">Quest Tracker</span>
+          </div>
+        </div>
+        <nav class="tab-nav" role="tablist">
+          <button class="tab-btn active" data-tab="quests" role="tab" aria-selected="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 1h9l3 3v11H2V1zm9.5 3.5L9 2H3v12h10V4.5h-1.5z"/><path d="M5 7h6v1H5zm0 2h6v1H5zm0 2h4v1H5z" opacity="0.7"/></svg>
+            <span class="tab-label">Quêtes</span>
+          </button>
+          <button class="tab-btn" data-tab="route" role="tab" aria-selected="false">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 4h4l-3 3 1 4-4-2-4 2 1-4-3-3h4z"/></svg>
+            <span class="tab-label">Boss Route</span>
+          </button>
+          <button class="tab-btn" data-tab="stats" role="tab" aria-selected="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            <span class="tab-label">Stats</span>
+          </button>
+          <button class="tab-btn" data-tab="hof" role="tab" aria-selected="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            <span class="tab-label">Hall of Fame</span>
+          </button>
+          <button class="tab-btn" data-tab="items" role="tab" aria-selected="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <span class="tab-label">Items</span>
+          </button>
+          <button class="tab-btn" data-tab="leaderboard" role="tab" aria-selected="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 21h8M12 17v4M7 4h10l-1 8H8L7 4zM5 4h14"/><circle cx="12" cy="2" r="1"/></svg>
+            <span class="tab-label">Leaderboard</span>
+          </button>
+          <button class="tab-btn" data-tab="dlc-predict" role="tab" aria-selected="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span class="tab-label">Pronostics DLC</span>
+          </button>
+        </nav>
+      </div>
+      <div class="header-right">
+        <div class="global-progress">
+          <span id="global-progress-text" class="progress-label">0 / 0</span>
+          <div class="progress-track"><div class="progress-fill" id="global-progress-bar"></div></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- QUESTS TAB -->
+  <div class="app-container tab-content" id="tab-quests">
+    <aside class="sidebar" role="complementary">
+      <div class="sidebar-header">
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.4"><circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>
+          <input type="text" id="search" placeholder="Rechercher une quête..." autocomplete="off">
+        </div>
+        <div class="filters-row" role="group" aria-label="Filtres de catégorie">
+          <button class="filter-btn active" data-cat="all">Toutes</button>
+          <button class="filter-btn" data-cat="main">Principales</button>
+          <button class="filter-btn" data-cat="secondary">Secondaires</button>
+          <button class="filter-btn" data-cat="dlc">DLC</button>
+        </div>
+        <div class="filters-row" role="group" aria-label="Filtres de statut">
+          <button class="status-filter-btn active" data-status="all">Tout statut</button>
+          <button class="status-filter-btn" data-status="in-progress">En cours</button>
+          <button class="status-filter-btn" data-status="completed">Terminées</button>
+          <button class="status-filter-btn" data-status="not-started">Non commencées</button>
+        </div>
+      </div>
+      <ul id="quest-list" role="listbox"></ul>
+    </aside>
+
+    <main id="quest-detail" role="main">
+      <div class="placeholder">
+        <div class="placeholder-inner">
+          <svg class="placeholder-icon" width="64" height="64" viewBox="0 0 64 64" opacity="0.15">
+            <path d="M32 4 C32 4 12 24 12 40 C12 52 20 60 32 64 C44 60 52 52 52 40 C52 24 32 4 32 4Z" fill="currentColor"/>
+          </svg>
+          <p>Sélectionne une quête pour voir les détails.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ROUTE TAB -->
+  <div class="app-container tab-content hidden" id="tab-route">
+    <aside class="sidebar" role="complementary">
+      <div class="sidebar-header">
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.4"><circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="10.5" y1="10.5" x2="15" y2="15" stroke="currentColor" stroke-width="1.5"/></svg>
+          <input type="text" id="route-search" placeholder="Rechercher un boss..." autocomplete="off">
+        </div>
+        <div class="filters" role="group" aria-label="Filtres de boss">
+          <button class="route-filter-btn active" data-filter="all">Tous</button>
+          <button class="route-filter-btn" data-filter="killed">Vaincus</button>
+          <button class="route-filter-btn" data-filter="alive">Restants</button>
+          <button class="route-filter-btn" data-filter="required">Obligatoires</button>
+        </div>
+      </div>
+      <ul id="region-list" role="listbox"></ul>
+    </aside>
+
+    <main id="route-detail" role="main">
+      <div class="placeholder">
+        <div class="placeholder-inner">
+          <svg class="placeholder-icon" width="64" height="64" viewBox="0 0 64 64" opacity="0.15">
+            <path d="M32 8l6 12h14l-10 10 3 14-13-7-13 7 3-14L12 20h14z" fill="currentColor"/>
+          </svg>
+          <p>Sélectionne une région pour voir les boss.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Stats Tab -->
+  <div id="tab-stats" class="tab-content full-tab hidden" role="tabpanel">
+    <div class="tab-loading">Chargement des stats...</div>
+  </div>
+
+  <!-- Hall of Fame Tab -->
+  <div id="tab-hof" class="tab-content full-tab hidden" role="tabpanel">
+    <div class="tab-loading">Chargement du Hall of Fame...</div>
+  </div>
+
+  <!-- Items Tab -->
+  <div id="tab-items" class="tab-content full-tab hidden" role="tabpanel">
+    <div class="tab-loading">Chargement des items...</div>
+  </div>
+
+  <!-- Leaderboard Tab -->
+  <div id="tab-leaderboard" class="tab-content full-tab hidden" role="tabpanel">
+    <div class="tab-loading">Chargement du classement...</div>
+  </div>
+
+  <!-- DLC Predictions Tab (read-only) -->
+  <div id="tab-dlc-predict" class="tab-content full-tab hidden" role="tabpanel">
+    <div class="tab-loading">Chargement des pronostics DLC...</div>
+  </div>
+
+  <script src="/quests/static/app.js"></script>
+</body>
+</html>
